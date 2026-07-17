@@ -1,34 +1,50 @@
-type RoomDefinition = { name: string; displayName: string };
-type FoodStallSlotDefinition = { name: string; displayName: string };
-type VenueDefinition =
-  | {
-      type: "building";
-      name: string;
-      displayName: string;
-      rooms: RoomDefinition[];
-    }
-  | { type: "stage"; name: string; displayName: string }
-  | { type: "outdoor"; name: string; displayName: string }
-  | {
-      type: "food_stall_area";
-      name: string;
-      displayName: string;
-      slots: FoodStallSlotDefinition[];
-    };
-type DistrictDefinition = {
-  name: string;
-  displayName: string;
-  venues: VenueDefinition[];
+import * as v from "valibot";
+
+const namedPlaceEntries = {
+  name: v.string(),
+  displayName: v.string(),
 };
 
-const createSlots = (count: number): FoodStallSlotDefinition[] =>
-  Array.from({ length: count }, (_, index) => {
-    const displayName = String(index + 1);
-    return { name: displayName, displayName };
-  });
+export const RoomSchema = v.object(namedPlaceEntries);
+export type Room = v.InferInput<typeof RoomSchema>;
+
+export const FoodStallSlotSchema = v.object(namedPlaceEntries);
+export type FoodStallSlot = v.InferInput<typeof FoodStallSlotSchema>;
+
+export const VenueSchema = v.variant("type", [
+  v.object({
+    ...namedPlaceEntries,
+    type: v.literal("building"),
+    rooms: v.array(RoomSchema),
+  }),
+  v.object({ ...namedPlaceEntries, type: v.literal("stage") }),
+  v.object({ ...namedPlaceEntries, type: v.literal("outdoor") }),
+  v.object({
+    ...namedPlaceEntries,
+    type: v.literal("food_stall_area"),
+    slots: v.array(FoodStallSlotSchema),
+  }),
+]);
+export type Venue = v.InferInput<typeof VenueSchema>;
+
+export const DistrictSchema = v.object({
+  ...namedPlaceEntries,
+  venues: v.array(VenueSchema),
+});
+export type District = v.InferInput<typeof DistrictSchema>;
+
+export const DistrictsSchema = v.array(DistrictSchema);
+
+export const PlaceSchema = v.union([
+  DistrictSchema,
+  VenueSchema,
+  RoomSchema,
+  FoodStallSlotSchema,
+]);
+export type Place = v.InferInput<typeof PlaceSchema>;
 
 // TODO: ちゃんと書く
-const districts = [
+export const districts = [
   {
     name: "east",
     displayName: "東地区",
@@ -60,13 +76,42 @@ const districts = [
         type: "food_stall_area",
         name: "fs-east-icho",
         displayName: "いちょう並木",
-        slots: createSlots(16),
+        slots: [
+          { name: "1", displayName: "1" },
+          { name: "2", displayName: "2" },
+          { name: "3", displayName: "3" },
+          { name: "4", displayName: "4" },
+          { name: "5", displayName: "5" },
+          { name: "6", displayName: "6" },
+          { name: "7", displayName: "7" },
+          { name: "8", displayName: "8" },
+          { name: "9", displayName: "9" },
+          { name: "10", displayName: "10" },
+          { name: "11", displayName: "11" },
+          { name: "12", displayName: "12" },
+          { name: "13", displayName: "13" },
+          { name: "14", displayName: "14" },
+          { name: "15", displayName: "15" },
+          { name: "16", displayName: "16" },
+        ],
       },
       {
         type: "food_stall_area",
         name: "fs-east-deck",
         displayName: "ウッドデッキ横",
-        slots: createSlots(11),
+        slots: [
+          { name: "1", displayName: "1" },
+          { name: "2", displayName: "2" },
+          { name: "3", displayName: "3" },
+          { name: "4", displayName: "4" },
+          { name: "5", displayName: "5" },
+          { name: "6", displayName: "6" },
+          { name: "7", displayName: "7" },
+          { name: "8", displayName: "8" },
+          { name: "9", displayName: "9" },
+          { name: "10", displayName: "10" },
+          { name: "11", displayName: "11" },
+        ],
       },
     ],
   },
@@ -115,13 +160,31 @@ const districts = [
         type: "food_stall_area",
         name: "fs-honkan-main",
         displayName: "本館横",
-        slots: createSlots(14),
+        slots: [
+          { name: "1", displayName: "1" },
+          { name: "2", displayName: "2" },
+          { name: "3", displayName: "3" },
+          { name: "4", displayName: "4" },
+          { name: "5", displayName: "5" },
+          { name: "6", displayName: "6" },
+          { name: "7", displayName: "7" },
+          { name: "8", displayName: "8" },
+          { name: "9", displayName: "9" },
+          { name: "10", displayName: "10" },
+          { name: "11", displayName: "11" },
+          { name: "12", displayName: "12" },
+          { name: "13", displayName: "13" },
+          { name: "14", displayName: "14" },
+        ],
       },
       {
         type: "food_stall_area",
         name: "fs-honkan-west",
         displayName: "西案内所横",
-        slots: createSlots(2),
+        slots: [
+          { name: "1", displayName: "1" },
+          { name: "2", displayName: "2" },
+        ],
       },
     ],
   },
@@ -234,13 +297,55 @@ const districts = [
         type: "food_stall_area",
         name: "fs-south-east",
         displayName: "南地区東",
-        slots: createSlots(24),
+        slots: [
+          { name: "1", displayName: "1" },
+          { name: "2", displayName: "2" },
+          { name: "3", displayName: "3" },
+          { name: "4", displayName: "4" },
+          { name: "5", displayName: "5" },
+          { name: "6", displayName: "6" },
+          { name: "7", displayName: "7" },
+          { name: "8", displayName: "8" },
+          { name: "9", displayName: "9" },
+          { name: "10", displayName: "10" },
+          { name: "11", displayName: "11" },
+          { name: "12", displayName: "12" },
+          { name: "13", displayName: "13" },
+          { name: "14", displayName: "14" },
+          { name: "15", displayName: "15" },
+          { name: "16", displayName: "16" },
+          { name: "17", displayName: "17" },
+          { name: "18", displayName: "18" },
+          { name: "19", displayName: "19" },
+          { name: "20", displayName: "20" },
+          { name: "21", displayName: "21" },
+          { name: "22", displayName: "22" },
+          { name: "23", displayName: "23" },
+          { name: "24", displayName: "24" },
+        ],
       },
       {
         type: "food_stall_area",
         name: "fs-south-west",
         displayName: "南地区西",
-        slots: createSlots(16),
+        slots: [
+          { name: "1", displayName: "1" },
+          { name: "2", displayName: "2" },
+          { name: "3", displayName: "3" },
+          { name: "4", displayName: "4" },
+          { name: "5", displayName: "5" },
+          { name: "6", displayName: "6" },
+          { name: "7", displayName: "7" },
+          { name: "8", displayName: "8" },
+          { name: "9", displayName: "9" },
+          { name: "10", displayName: "10" },
+          { name: "11", displayName: "11" },
+          { name: "12", displayName: "12" },
+          { name: "13", displayName: "13" },
+          { name: "14", displayName: "14" },
+          { name: "15", displayName: "15" },
+          { name: "16", displayName: "16" },
+        ],
       },
     ],
   },
@@ -402,8 +507,97 @@ const districts = [
         type: "food_stall_area",
         name: "fs-ishikawadai",
         displayName: "石川台地区",
-        slots: createSlots(7),
+        slots: [
+          { name: "1", displayName: "1" },
+          { name: "2", displayName: "2" },
+          { name: "3", displayName: "3" },
+          { name: "4", displayName: "4" },
+          { name: "5", displayName: "5" },
+          { name: "6", displayName: "6" },
+          { name: "7", displayName: "7" },
+        ],
       },
     ],
   },
-] as const satisfies DistrictDefinition[];
+] as const satisfies District[];
+
+type DistrictData = (typeof districts)[number];
+
+type ChildPlaceId<
+  DistrictName extends string,
+  VenueName extends string,
+  Venue,
+> = Venue extends {
+  type: "building";
+  rooms: readonly (infer Room)[];
+}
+  ? Room extends { name: infer RoomName extends string }
+    ? `${DistrictName}.${VenueName}.${RoomName}`
+    : never
+  : Venue extends {
+        type: "food_stall_area";
+        slots: readonly (infer Slot)[];
+      }
+    ? Slot extends { name: infer SlotName extends string }
+      ? `${DistrictName}.${VenueName}.${SlotName}`
+      : never
+    : never;
+
+type VenuePlaceId<DistrictName extends string, Venue> = Venue extends {
+  name: infer VenueName extends string;
+}
+  ? | `${DistrictName}.${VenueName}`
+    | ChildPlaceId<DistrictName, VenueName, Venue>
+  : never;
+
+type DescendantPlaceId<TDistrict extends DistrictData> =
+  TDistrict extends DistrictData
+    ? VenuePlaceId<TDistrict["name"], TDistrict["venues"][number]>
+    : never;
+
+type PlaceIdValue = DistrictData["name"] | DescendantPlaceId<DistrictData>;
+
+const createPlaceEntries = (): [PlaceIdValue, Place][] => {
+  const entries: [PlaceIdValue, Place][] = [];
+
+  for (const district of districts) {
+    entries.push([district.name, district]);
+
+    for (const venue of district.venues) {
+      const venueId = `${district.name}.${venue.name}` as PlaceIdValue;
+      entries.push([venueId, venue]);
+
+      const children =
+        venue.type === "building"
+          ? venue.rooms
+          : venue.type === "food_stall_area"
+            ? venue.slots
+            : [];
+
+      for (const child of children) {
+        const childId = `${venueId}.${child.name}` as PlaceIdValue;
+        entries.push([childId, child]);
+      }
+    }
+  }
+
+  return entries;
+};
+
+const placeEntries = createPlaceEntries();
+const placeIds = placeEntries.map(([id]) => id);
+
+export const PlaceIdSchema = v.picklist(placeIds);
+export type PlaceId = v.InferInput<typeof PlaceIdSchema>;
+
+const placesById = new Map<PlaceId, Place>(placeEntries);
+
+export const getPlace = (id: PlaceId): Place => {
+  const place = placesById.get(id);
+
+  if (place === undefined) {
+    throw new Error(`Unknown place ID: ${id}`);
+  }
+
+  return place;
+};
