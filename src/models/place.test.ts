@@ -14,7 +14,7 @@ describe("getPlace", () => {
       type: "building",
       name: "mi6",
       displayName: "緑が丘6号館",
-      rooms: [{ name: "mi6-302", displayName: "302" }],
+      rooms: [{ name: "mi6-302", displayName: "302", floor: "3F" }],
     });
   });
 
@@ -22,6 +22,7 @@ describe("getPlace", () => {
     expect(getPlace("midorigaoka.mi6.mi6-302")).toEqual({
       name: "mi6-302",
       displayName: "302",
+      floor: "3F",
     });
   });
 
