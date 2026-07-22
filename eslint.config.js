@@ -10,6 +10,7 @@ export default tseslint.config(
       "dist/**",
       ".wrangler/**",
       "worker-configuration.d.ts",
+      "src/models/place-id.generated.d.ts",
     ],
   },
   js.configs.recommended,

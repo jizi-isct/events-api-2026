@@ -7,7 +7,11 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "test": "bun test",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "generate:place-id": "bun scripts/generate-place-id-type.ts",
+    "check:place-id": "bun scripts/check-place-id-sync.ts",
+    "predev": "bun run check:place-id",
+    "prelint": "bun run check:place-id"
   },
   "dependencies": {
     "hono": "^4.12.30",
