@@ -14,14 +14,14 @@ describe("getPlace", () => {
       type: "building",
       name: "mi6",
       displayName: "緑が丘6号館",
-      rooms: [{ name: "mi6-302", displayName: "302", floor: "3F" }],
+      rooms: [{ name: "mi6-302", displayName: "MI6-302", floor: "3F" }],
     });
   });
 
   test("gets a room by its hierarchical ID", () => {
     expect(getPlace("midorigaoka.mi6.mi6-302")).toEqual({
       name: "mi6-302",
-      displayName: "302",
+      displayName: "MI6-302",
       floor: "3F",
     });
   });

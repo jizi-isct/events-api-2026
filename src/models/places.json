@@ -12,6 +12,23 @@
             "name": "tp-b1-event",
             "displayName": "地下1階イベントスペース",
             "floor": "B1F"
+          },
+          {
+            "name": "tp-b2-event",
+            "displayName": "地下2階イベントスペース",
+            "floor": "B2F"
+          }
+        ]
+      },
+      {
+        "type": "building",
+        "name": "centennial-hall",
+        "displayName": "百年記念館",
+        "rooms": [
+          {
+            "name": "centennial-hall-1f",
+            "displayName": "1階",
+            "floor": "1F"
           }
         ]
       },
@@ -261,7 +278,28 @@
           {
             "name": "m-290",
             "displayName": "M-290",
+            "floor": "2F",
+            "alias": "物理学系輪講室"
+          },
+          {
+            "name": "m-124",
+            "displayName": "M-124",
+            "floor": "1F"
+          },
+          {
+            "name": "m-220",
+            "displayName": "M-220",
             "floor": "2F"
+          },
+          {
+            "name": "m-225",
+            "displayName": "M-225",
+            "floor": "2F"
+          },
+          {
+            "name": "m-374",
+            "displayName": "M-374",
+            "floor": "3F"
           }
         ]
       },
@@ -451,6 +489,11 @@
             "floor": "3F"
           },
           {
+            "name": "s3-310",
+            "displayName": "S3-310",
+            "floor": "3F"
+          },
+          {
             "name": "s3-403",
             "displayName": "S3-403",
             "floor": "4F"
@@ -605,6 +648,11 @@
             "name": "s8-518",
             "displayName": "S8-518",
             "floor": "5F"
+          },
+          {
+            "name": "s8-entrance",
+            "displayName": "エントランスホール",
+            "floor": "1F"
           }
         ]
       },
@@ -624,7 +672,25 @@
         "type": "building",
         "name": "circle-1",
         "displayName": "サークル棟1",
-        "rooms": []
+        "rooms": [
+          {
+            "name": "c1-212",
+            "displayName": "212",
+            "floor": "2F"
+          }
+        ]
+      },
+      {
+        "type": "building",
+        "name": "lab2",
+        "displayName": "南実験棟2",
+        "rooms": [
+          {
+            "name": "lab2-storage",
+            "displayName": "マイスター倉庫",
+            "floor": "1F"
+          }
+        ]
       },
       {
         "type": "outdoor",
@@ -823,12 +889,12 @@
         "rooms": [
           {
             "name": "w2-401",
-            "displayName": "401",
+            "displayName": "W2-401",
             "floor": "4F"
           },
           {
             "name": "w2-402",
-            "displayName": "402",
+            "displayName": "W2-402",
             "floor": "4F"
           }
         ]
@@ -840,43 +906,44 @@
         "rooms": [
           {
             "name": "w3-201",
-            "displayName": "201",
+            "displayName": "W3-201",
             "floor": "2F"
           },
           {
             "name": "w3-205",
-            "displayName": "205",
+            "displayName": "W3-205",
             "floor": "2F"
           },
           {
             "name": "w3-207",
-            "displayName": "207",
+            "displayName": "W3-207",
             "floor": "2F"
           },
           {
             "name": "w3-301",
-            "displayName": "301",
+            "displayName": "W3-301",
             "floor": "3F"
           },
           {
             "name": "w3-305",
-            "displayName": "305",
+            "displayName": "W3-305",
             "floor": "3F"
           },
           {
             "name": "w3-501",
-            "displayName": "501",
+            "displayName": "W3-501",
             "floor": "5F"
           },
           {
             "name": "w3-707",
-            "displayName": "707",
+            "displayName": "W3-707",
             "floor": "7F"
           },
           {
             "name": "w3-505",
-            "displayName": "505",
-            "floor": "5F"
+            "displayName": "W3-505",
+            "floor": "5F",
+            "alias": "基礎生物学実験室"
           }
         ]
       },
@@ -887,17 +954,17 @@
         "rooms": [
           {
             "name": "w5-105",
-            "displayName": "105",
+            "displayName": "W5-105",
             "floor": "1F"
           },
           {
             "name": "w5-106",
-            "displayName": "106",
+            "displayName": "W5-106",
             "floor": "1F"
           },
           {
             "name": "w5-107",
-            "displayName": "107",
+            "displayName": "W5-107",
             "floor": "1F"
           },
           {
@@ -914,33 +981,34 @@
         "rooms": [
           {
             "name": "w8-404",
-            "displayName": "404",
+            "displayName": "W8-404",
             "floor": "4F"
           },
           {
             "name": "w8-407",
-            "displayName": "407",
+            "displayName": "W8-407",
             "floor": "4F"
           },
           {
             "name": "w8-509",
-            "displayName": "509",
+            "displayName": "W8-509",
             "floor": "5F"
           },
           {
             "name": "w8-601",
-            "displayName": "601",
+            "displayName": "W8-601",
             "floor": "6F"
           },
           {
             "name": "w8-604",
-            "displayName": "604",
+            "displayName": "W8-604",
             "floor": "6F"
           },
           {
             "name": "w8-609",
-            "displayName": "609",
-            "floor": "6F"
+            "displayName": "W8-609",
+            "floor": "6F",
+            "alias": "コラボレーションルーム"
           },
           {
             "name": "w8-7rf",
@@ -949,7 +1017,7 @@
           },
           {
             "name": "w8-901",
-            "displayName": "901",
+            "displayName": "W8-901",
             "floor": "9F"
           }
         ]
@@ -961,42 +1029,62 @@
         "rooms": [
           {
             "name": "w9-201",
-            "displayName": "201",
+            "displayName": "W9-201",
             "floor": "2F"
           },
           {
             "name": "w9-202",
-            "displayName": "202",
+            "displayName": "W9-202",
             "floor": "2F"
           },
           {
+            "name": "w9-321",
+            "displayName": "W9-321",
+            "floor": "3F"
+          },
+          {
+            "name": "w9-322",
+            "displayName": "W9-322",
+            "floor": "3F"
+          },
+          {
             "name": "w9-323",
-            "displayName": "323",
+            "displayName": "W9-323",
             "floor": "3F"
           },
           {
             "name": "w9-324",
-            "displayName": "324",
+            "displayName": "W9-324",
+            "floor": "3F"
+          },
+          {
+            "name": "w9-325",
+            "displayName": "W9-325",
+            "floor": "3F"
+          },
+          {
+            "name": "w9-326",
+            "displayName": "W9-326",
             "floor": "3F"
           },
           {
             "name": "w9-327",
-            "displayName": "327",
+            "displayName": "W9-327",
             "floor": "3F"
           },
           {
             "name": "w9-706",
-            "displayName": "706",
+            "displayName": "W9-706",
             "floor": "7F"
           },
           {
             "name": "w9-707",
-            "displayName": "707",
+            "displayName": "W9-707",
             "floor": "7F"
           },
           {
             "name": "w9-716",
-            "displayName": "716",
+            "displayName": "W9-716",
             "floor": "7F"
           }
         ]
@@ -1008,12 +1096,12 @@
         "rooms": [
           {
             "name": "wl1-201",
-            "displayName": "201",
+            "displayName": "WL1-201",
             "floor": "2F"
           },
           {
             "name": "wl1-401",
-            "displayName": "401",
+            "displayName": "WL1-401",
             "floor": "4F"
           }
         ]
@@ -1025,22 +1113,22 @@
         "rooms": [
           {
             "name": "wl2-101",
-            "displayName": "101",
+            "displayName": "WL2-101",
             "floor": "1F"
           },
           {
             "name": "wl2-201",
-            "displayName": "201",
+            "displayName": "WL2-201",
             "floor": "2F"
           },
           {
             "name": "wl2-301",
-            "displayName": "301",
+            "displayName": "WL2-301",
             "floor": "3F"
           },
           {
             "name": "wl2-401",
-            "displayName": "401",
+            "displayName": "WL2-401",
             "floor": "4F"
           }
         ]
@@ -1076,14 +1164,56 @@
         "type": "building",
         "name": "circle-2",
         "displayName": "サークル棟2",
-        "rooms": []
+        "rooms": [
+          {
+            "name": "c2-102",
+            "displayName": "102",
+            "floor": "1F"
+          },
+          {
+            "name": "c2-201",
+            "displayName": "201",
+            "floor": "2F",
+            "alias": "東京科学大学管弦楽団部室"
+          }
+        ]
       }
     ]
   },
   {
     "name": "north",
     "displayName": "北地区",
-    "venues": []
+    "venues": [
+      {
+        "type": "building",
+        "name": "n1",
+        "displayName": "北1号館",
+        "rooms": [
+          {
+            "name": "n1-158",
+            "displayName": "N1-158会議室",
+            "floor": "1F"
+          },
+          {
+            "name": "n1-parking",
+            "displayName": "N1-正面玄関駐車場",
+            "floor": "屋外"
+          }
+        ]
+      },
+      {
+        "type": "building",
+        "name": "n3",
+        "displayName": "北3号館（環境エネルギーイノベーション棟）",
+        "rooms": [
+          {
+            "name": "n3-lab",
+            "displayName": "N3-3階実験室",
+            "floor": "3F"
+          }
+        ]
+      }
+    ]
   },
   {
     "name": "midorigaoka",
@@ -1096,7 +1226,7 @@
         "rooms": [
           {
             "name": "mi6-302",
-            "displayName": "302",
+            "displayName": "MI6-302",
             "floor": "3F"
           }
         ]
@@ -1114,22 +1244,22 @@
         "rooms": [
           {
             "name": "i1-254",
-            "displayName": "254",
+            "displayName": "I1-254",
             "floor": "2F"
           },
           {
             "name": "i1-255",
-            "displayName": "255",
+            "displayName": "I1-255",
             "floor": "2F"
           },
           {
             "name": "i1-256",
-            "displayName": "256",
+            "displayName": "I1-256",
             "floor": "2F"
           },
           {
             "name": "i1-751",
-            "displayName": "751",
+            "displayName": "I1-751",
             "floor": "7F"
           }
         ]
