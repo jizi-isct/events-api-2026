@@ -50,6 +50,20 @@ export const PlaceSchema = v.variant("type", [
 ]);
 export type Place = v.InferInput<typeof PlaceSchema>;
 
+export type PlaceType = Place["type"];
+
+const placeTypes = [
+  "district",
+  "building",
+  "stage",
+  "outdoor",
+  "food_stall_area",
+  "room",
+  "food_stall_slot",
+] as const satisfies readonly PlaceType[];
+
+export const PlaceTypeSchema = v.picklist(placeTypes);
+
 // TODO: ちゃんと書く
 export const districts = [
   {
@@ -621,3 +635,33 @@ export const getPlace = (id: PlaceId): Place => {
 
   return place;
 };
+
+export const PlaceSummarySchema = v.object({
+  id: PlaceIdSchema,
+  type: PlaceTypeSchema,
+  name: v.string(),
+  displayName: v.string(),
+});
+export type PlaceSummary = v.InferInput<typeof PlaceSummarySchema>;
+
+const placeSummaries: PlaceSummary[] = placeEntries.map(([id, place]) => ({
+  id,
+  type: place.type,
+  name: place.name,
+  displayName: place.displayName,
+}));
+
+export interface PlaceFilter {
+  type?: PlaceType;
+  name?: string;
+  displayName?: string;
+}
+
+export const searchPlaces = (filter: PlaceFilter = {}): PlaceSummary[] =>
+  placeSummaries.filter(
+    (place) =>
+      (filter.type === undefined || place.type === filter.type) &&
+      (filter.name === undefined || place.name === filter.name) &&
+      (filter.displayName === undefined ||
+        place.displayName.includes(filter.displayName)),
+  );
