@@ -3,6 +3,10 @@
   "name": "events-api-2026",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-13",
+  "route": {
+    "custom_domain": true,
+    "pattern": "events26.koudaisai.jp",
+  },
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],
