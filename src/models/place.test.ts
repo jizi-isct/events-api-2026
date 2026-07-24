@@ -1,10 +1,34 @@
 import { describe, expect, test } from "bun:test";
 import * as v from "valibot";
-import { districts, DistrictsSchema, getPlace, PlaceIdSchema } from "./place";
+import {
+  districts,
+  DistrictsSchema,
+  findDuplicateIds,
+  getPlace,
+  placeIds,
+  PlaceIdSchema,
+} from "./place";
 
 describe("districts", () => {
   test("all definitions conform to DistrictsSchema", () => {
     expect(v.safeParse(DistrictsSchema, districts).success).toBe(true);
+  });
+
+  test("has no duplicate place IDs", () => {
+    expect(findDuplicateIds(placeIds)).toEqual([]);
+  });
+});
+
+describe("findDuplicateIds", () => {
+  test("returns IDs that appear more than once", () => {
+    expect(findDuplicateIds(["a", "b", "a", "c", "c", "c"])).toEqual([
+      "a",
+      "c",
+    ]);
+  });
+
+  test("returns an empty array when there are no duplicates", () => {
+    expect(findDuplicateIds(["a", "b", "c"])).toEqual([]);
   });
 });
 
@@ -14,7 +38,9 @@ describe("getPlace", () => {
       type: "building",
       name: "mi6",
       displayName: "緑が丘6号館",
-      rooms: [{ type: "room", name: "mi6-302", displayName: "302" }],
+      rooms: [
+        { type: "room", name: "mi6-302", displayName: "MI6-302", floor: "3F" },
+      ],
     });
   });
 
@@ -22,7 +48,8 @@ describe("getPlace", () => {
     expect(getPlace("midorigaoka.mi6.mi6-302")).toEqual({
       type: "room",
       name: "mi6-302",
-      displayName: "302",
+      displayName: "MI6-302",
+      floor: "3F",
     });
   });
 
