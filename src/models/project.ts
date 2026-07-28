@@ -41,32 +41,42 @@ export const FoodStallTagSchema = v.variant("tag", [
 
 export type FoodStallTag = v.InferInput<typeof FoodStallTagSchema>;
 
-export const ProjectSchema = v.union([
+const ProjectBaseSchema = v.object({
+  groupName: v.string(),
+  projectName: v.string(),
+  description: v.string(),
+  isChildFriendly: v.boolean(),
+  isRecommended: v.boolean(),
+  occasions: v.array(OccasionSchema),
+});
+
+const ProjectVariantSchema = v.variant("type", [
   v.object({
-    groupName: v.string(),
-    projectName: v.string(),
-    description: v.string(),
-    isChildFriendly: v.boolean(),
-    isRecommended: v.boolean(),
-    occasions: v.array(OccasionSchema),
+    type: v.literal("food-stall"),
+    tag: v.array(FoodStallTagSchema),
   }),
-  v.variant("type", [
-    v.object({
-      type: v.literal("food-stall"),
-      tag: v.array(FoodStallTagSchema),
-    }),
-    v.object({
-      type: v.literal("general"),
-      tag: v.array(GeneralTagSchema),
-    }),
-    v.object({
-      type: v.literal("laboratory"),
-      tour: v.boolean(),
-    }),
-    v.object({
-      type: v.literal("stage"),
-    }),
-  ]),
+  v.object({
+    type: v.literal("general"),
+    tag: v.array(GeneralTagSchema),
+  }),
+  v.object({
+    type: v.literal("laboratory"),
+    tour: v.boolean(),
+  }),
+  v.object({
+    type: v.literal("stage"),
+  }),
+]);
+
+/**
+ * 企画を表す。共通情報({@link ProjectBaseSchema})に、
+ * type で判別される種別ごとの情報({@link ProjectVariantSchema})を重ねた直和型。
+ */
+export const ProjectSchema = v.intersect([
+  ProjectBaseSchema,
+  ProjectVariantSchema,
 ]);
 
 export type Project = v.InferInput<typeof ProjectSchema>;
+
+export type ProjectType = Project["type"];
