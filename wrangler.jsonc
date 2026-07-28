@@ -7,6 +7,34 @@
     "custom_domain": true,
     "pattern": "events26.koudaisai.jp",
   },
+  "env": {
+    "staging": {
+      "route": {
+        "custom_domain": true,
+        "pattern": "events26-staging.koudaisai.jp",
+      },
+      "d1_databases": [
+        {
+          "binding": "events_api_2026_staging",
+          "database_name": "events-api-2026-staging",
+          "database_id": "b4e851c0-fb6b-48e8-be1b-c7805cbc0780",
+        },
+      ],
+    },
+    "prod": {
+      "route": {
+        "custom_domain": true,
+        "pattern": "events26.koudaisai.jp",
+      },
+      "d1_databases": [
+        {
+          "binding": "events_api_2026_prod",
+          "database_name": "events-api-2026-prod",
+          "database_id": "eedea329-37af-4baa-ba98-2a4c52bb9441",
+        },
+      ],
+    },
+  },
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],
