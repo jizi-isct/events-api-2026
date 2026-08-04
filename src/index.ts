@@ -14,15 +14,15 @@ app.get(
         title: "工大祭企画情報API",
         version: "0.1.0",
         contact: {
-          "url": "https://r.jizi.jp/2026/contact-form"
+          url: "https://r.jizi.jp/2026/contact-form",
         },
       },
       servers: [
         {
           description: "本番環境",
-          url: "https://events26.koudaisai.jp/v1"
-        }
-      ]
+          url: "https://events26.koudaisai.jp/v1",
+        },
+      ],
     },
     exclude: ["/openapi.json"],
   }),
