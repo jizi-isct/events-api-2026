@@ -1,0 +1,7 @@
+# wrangler types が生成するため手で整形しない
+worker-configuration.d.ts
+
+node_modules
+dist
+.wrangler
+bun.lock
