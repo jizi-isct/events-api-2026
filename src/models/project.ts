@@ -41,7 +41,12 @@ export const FoodStallTagSchema = v.variant("tag", [
 
 export type FoodStallTag = v.InferInput<typeof FoodStallTagSchema>;
 
+export const ProjectIdSchema = v.string();
+
+export type ProjectId = v.InferInput<typeof ProjectIdSchema>;
+
 const ProjectBaseSchema = v.object({
+  id: ProjectIdSchema,
   groupName: v.string(),
   projectName: v.string(),
   description: v.string(),
