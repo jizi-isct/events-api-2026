@@ -66,7 +66,7 @@ const ProjectVariantSchema = v.variant("type", [
   }),
   v.object({
     type: v.literal("laboratory"),
-    tour: v.boolean(),
+    isTour: v.boolean(),
   }),
   v.object({
     type: v.literal("stage"),
