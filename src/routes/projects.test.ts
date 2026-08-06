@@ -3,10 +3,16 @@ import { beforeEach, describe, expect, test } from "vitest";
 import * as v from "valibot";
 import app from "../index";
 import { ProjectSchema, type Project } from "../models/project";
+import {
+  type ProjectDetails,
+  ProjectDetailsSchema,
+} from "../models/project_details";
+import { ProjectDetailsRepository } from "../repositories/project_details_repository";
 import { ProjectRepository } from "../repositories/project_repository";
 
 const db = env.DB;
 const repository = new ProjectRepository(db);
+const detailsRepository = new ProjectDetailsRepository(db);
 
 const general: Project = {
   id: "g1",
@@ -38,6 +44,20 @@ const laboratory: Project = {
   isRecommended: true,
   occasions: [],
   isTour: true,
+};
+
+const details: ProjectDetails = {
+  additionalInfo: "整理券は10時から配布します。",
+  menu: {
+    items: [
+      {
+        name: "クレープ",
+        price: 500,
+        options: [{ name: "アイス追加", price: 100 }],
+      },
+    ],
+    description: "売り切れ次第終了します。",
+  },
 };
 
 beforeEach(async () => {
@@ -95,6 +115,54 @@ describe("GET /v1/projects/:projectId", () => {
   });
 });
 
+describe("GET /v1/projects/:projectId/details", () => {
+  test("企画詳細情報を返す", async () => {
+    await repository.create(general);
+    await detailsRepository.save("g1", details);
+
+    const res = await app.request("/v1/projects/g1/details", undefined, env);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(v.safeParse(ProjectDetailsSchema, body).success).toBe(true);
+    expect(body).toEqual(details);
+  });
+
+  test("保存済みの空の詳細情報を返す", async () => {
+    await repository.create(general);
+    await detailsRepository.save("g1", {});
+
+    const res = await app.request("/v1/projects/g1/details", undefined, env);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({});
+  });
+
+  test("詳細情報が未登録なら 404", async () => {
+    await repository.create(general);
+
+    const res = await app.request("/v1/projects/g1/details", undefined, env);
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({
+      message: "Project details not found: g1",
+    });
+  });
+
+  test("存在しない企画 ID なら 404", async () => {
+    const res = await app.request(
+      "/v1/projects/unknown/details",
+      undefined,
+      env,
+    );
+
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({
+      message: "Project details not found: unknown",
+    });
+  });
+});
+
 describe("OpenAPI", () => {
   test("documents the projects routes", async () => {
     const res = await app.request("/openapi.json", undefined, env);
@@ -108,5 +176,8 @@ describe("OpenAPI", () => {
     expect(document.paths["/v1/projects/{projectId}"]?.get?.operationId).toBe(
       "getProject",
     );
+    expect(
+      document.paths["/v1/projects/{projectId}/details"]?.get?.operationId,
+    ).toBe("getProjectDetails");
   });
 });

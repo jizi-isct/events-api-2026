@@ -3,6 +3,8 @@ import { describeRoute, resolver, validator } from "hono-openapi";
 import * as v from "valibot";
 import type { Bindings } from "../bindings";
 import { ProjectIdSchema, ProjectSchema } from "../models/project";
+import { ProjectDetailsSchema } from "../models/project_details";
+import { ProjectDetailsRepository } from "../repositories/project_details_repository";
 import { ProjectRepository } from "../repositories/project_repository";
 
 const NotFoundSchema = v.object({
@@ -31,6 +33,48 @@ export const projects = new Hono<{ Bindings: Bindings }>()
     async (c) => {
       const repository = new ProjectRepository(c.env.DB);
       return c.json(await repository.list());
+    },
+  )
+  .get(
+    "/:projectId/details",
+    describeRoute({
+      operationId: "getProjectDetails",
+      summary: "企画詳細情報の取得",
+      description: "IDで指定した企画の詳細情報を返します。",
+      tags: ["projects"],
+      responses: {
+        200: {
+          description: "指定した企画の詳細情報",
+          content: {
+            "application/json": {
+              schema: resolver(ProjectDetailsSchema),
+            },
+          },
+        },
+        404: {
+          description: "指定した企画の詳細情報が存在しない",
+          content: {
+            "application/json": {
+              schema: resolver(NotFoundSchema),
+            },
+          },
+        },
+      },
+    }),
+    validator("param", v.object({ projectId: ProjectIdSchema })),
+    async (c) => {
+      const { projectId } = c.req.valid("param");
+      const repository = new ProjectDetailsRepository(c.env.DB);
+      const details = await repository.get(projectId);
+
+      if (details === null) {
+        return c.json(
+          { message: `Project details not found: ${projectId}` },
+          404,
+        );
+      }
+
+      return c.json(details);
     },
   )
   .get(
