@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { openAPIRouteHandler } from "hono-openapi";
 import type { Bindings } from "./bindings";
 import { requireAccess } from "./middleware/access";
+import { adminProjects } from "./routes/admin_projects";
 import { places } from "./routes/places";
 import { projects } from "./routes/projects";
 
@@ -14,6 +15,7 @@ app.route("/v1/projects", projects);
 // 対象を指定できず、メソッドによる出し分けができないため。
 // 先頭セグメントごと保護しておけば、あとからルートを足しても漏れない。
 app.use("/admin/*", requireAccess);
+app.route("/admin/v1", adminProjects);
 
 app.get(
   "/openapi.json",
@@ -33,7 +35,8 @@ app.get(
         },
       ],
     },
-    exclude: ["/openapi.json"],
+    // 管理用エンドポイントは公開仕様に載せない。
+    exclude: ["/openapi.json", /^\/admin\//],
   }),
 );
 
