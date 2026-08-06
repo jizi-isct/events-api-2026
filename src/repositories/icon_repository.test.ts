@@ -58,3 +58,34 @@ describe("save", () => {
     expect(await (await bucket.get("s1/original"))?.text()).toBe("stage");
   });
 });
+
+describe("get", () => {
+  test("企画 ID に対応するアイコンの原本を取得する", async () => {
+    await bucket.put("g1/original", "icon", {
+      httpMetadata: { contentType: "image/png" },
+    });
+
+    const icon = await repository.get("g1");
+
+    expect(await icon?.text()).toBe("icon");
+    expect(icon?.httpMetadata?.contentType).toBe("image/png");
+  });
+
+  test("アイコンが存在しない場合は null を返す", async () => {
+    expect(await repository.get("g1")).toBeNull();
+  });
+
+  test("条件付き取得で ETag が一致した場合は本文を返さない", async () => {
+    await bucket.put("g1/original", "icon", {
+      httpMetadata: { contentType: "image/png" },
+    });
+    const stored = await bucket.head("g1/original");
+    const headers = new Headers({ "If-None-Match": stored!.httpEtag });
+
+    const icon = await repository.get("g1", headers);
+
+    expect(icon).not.toBeNull();
+    expect("body" in icon!).toBe(false);
+    expect(icon?.httpEtag).toBe(stored?.httpEtag);
+  });
+});
