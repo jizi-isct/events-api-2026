@@ -79,12 +79,12 @@ Wasabi credentials は暗号化済み `backend.wasabi.sops.env` から取得す�
 
 Environment variables は次のとおりです。set 型の値は JSON 配列で指定します。
 
-| Name                            | Example                                    | Required               |
-| ------------------------------- | ------------------------------------------ | ---------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`         | `0123456789abcdef0123456789abcdef`         | yes                    |
-| `ENABLED_ENVIRONMENTS`          | `["staging"]`                              | no; default is staging |
-| `ALLOWED_IDENTITY_PROVIDER_IDS` | `["00000000-0000-0000-0000-000000000000"]` | yes                    |
-| `SESSION_DURATION`              | `24h`                                      | no                     |
+| Name                            | Example                                    | Required            |
+| ------------------------------- | ------------------------------------------ | ------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`         | `0123456789abcdef0123456789abcdef`         | yes                 |
+| `ENABLED_ENVIRONMENTS`          | `["staging","prod"]`                       | no; default is both |
+| `ALLOWED_IDENTITY_PROVIDER_IDS` | `["00000000-0000-0000-0000-000000000000"]` | yes                 |
+| `SESSION_DURATION`              | `24h`                                      | no                  |
 
 Environment variable の変更だけでは main push workflow は起動しません。値を変更した後は Actions 画面から `Access infrastructure` を main branch に対して手動実行します。手動実行で deploy できるのも main だけです。
 
@@ -154,7 +154,7 @@ apply 後に出力される値を `wrangler.jsonc` の `env.staging.vars` / `env
 
 Terraform と Wrangler が同じ Worker 設定を同時に所有すると競合するため、この stack は Worker vars 自体を更新せず、必要な値だけを出力します。
 
-初回 rollout は `enabled_environments` を使って一環境ずつ行います。Access application には `prevent_destroy` があるため、一度追加した環境を集合から取り除くことはできません。
+初回 rollout を段階的に行う場合は `enabled_environments` を使って一環境ずつ追加します。既定値と GitHub Environment `main` は staging / prod の両方です。Access application には `prevent_destroy` があるため、一度追加した環境を集合から取り除くことはできません。
 
 1. staging の既存 Access application / 子 path を確認し、必要なら import
 2. `enabled_environments = ["staging"]` で Terraform を apply し、AUD と team domain を取得

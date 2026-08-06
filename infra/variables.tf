@@ -9,9 +9,9 @@ variable "cloudflare_account_id" {
 }
 
 variable "enabled_environments" {
-  description = "Access application を作成する環境。初回は staging のみ、検証後に prod を追加する"
+  description = "Access application を作成する環境"
   type        = set(string)
-  default     = ["staging"]
+  default     = ["staging", "prod"]
 
   validation {
     condition = (
