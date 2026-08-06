@@ -4,7 +4,7 @@ output "access_team_domain" {
 }
 
 output "access_application_audiences" {
-  description = "環境ごとの Wrangler ACCESS_AUD"
+  description = "環境ごとのルート保護用 Access application の Wrangler ACCESS_AUD"
   value = {
     for environment, application in cloudflare_zero_trust_access_application.admin :
     environment => application.aud

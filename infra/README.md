@@ -1,13 +1,15 @@
 # Infrastructure
 
-Cloudflare Access で次の管理 API だけを保護する Terraform stack です。
+Cloudflare Access で staging / prod のホスト全体を保護する Terraform stack です。
 
-- staging: `events26-staging.koudaisai.jp/admin` とその配下
-- prod: `events26.koudaisai.jp/admin` とその配下
+- staging: `events26-staging.koudaisai.jp`
+- prod: `events26.koudaisai.jp`
 
-公開 API の `/v1` は Access の対象にしません。Zero Trust organization と Identity Provider 自体は中央の infrastructure repository の所有物とし、この stack では既存 ID を参照します。
+各ホストの root application には login policy を設定し、より具体的な `/v1` と `/openapi.json` の child application だけを `bypass` + `everyone` で公開します。Cloudflare Access は具体的な path の application を優先し、親の policy を継承しません。公開範囲をこの2 pathに限定し、その他の path と `cloudflared` のブラウザ handoff 先 `/cdn-cgi/access/cli` は root application で保護します。
 
-中央 repository の `cloudflare/zero_trust/access_application.tf` と同じく、指定した Identity Provider でログインできたユーザーを許可します。`allowed_idps` でログイン画面の選択肢を制限し、同じ ID を `login_method` とする allow policy を管理 API に適用します。
+Zero Trust organization と Identity Provider 自体は中央の infrastructure repository の所有物とし、この stack では既存 ID を参照します。
+
+中央 repository の `cloudflare/zero_trust/access_application.tf` と同じく、指定した Identity Provider でログインできたユーザーを許可します。`allowed_idps` でログイン画面の選択肢を制限し、同じ ID を `login_method` とする allow policy を root application に適用します。
 
 Terraform state は Wasabi の S3-compatible API に保存します。backend 設定と credentials は `backend.wasabi.sops.env` にまとめ、SOPS + age で暗号化してコミットします。age の秘密鍵、復号済み設定、実 tfvars、state、plan は Git にコミットしません。
 
@@ -66,7 +68,7 @@ deploy job は GitHub Environment `main` を参照します。workflow を main 
 初回の workflow merge より先に、次の準備を完了します。
 
 1. Wasabi bucket / sub-user を作成し、`backend.wasabi.sops.env` の5つの placeholder を実値へ変更して暗号文を commit
-2. ローカルから同じ backend を初期化し、既存 Access application があれば import して staging の plan を確認
+2. ローカルから同じ backend を初期化し、既存 Access application があれば import して両環境の plan を確認
 3. GitHub Environment `main` に以下の secrets / variables と main 限定 rule を設定
 4. main の ruleset を有効化してから workflow の pull request を merge
 
@@ -79,12 +81,12 @@ Wasabi credentials は暗号化済み `backend.wasabi.sops.env` から取得す�
 
 Environment variables は次のとおりです。set 型の値は JSON 配列で指定します。
 
-| Name                            | Example                                    | Required               |
-| ------------------------------- | ------------------------------------------ | ---------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`         | `0123456789abcdef0123456789abcdef`         | yes                    |
-| `ENABLED_ENVIRONMENTS`          | `["staging"]`                              | no; default is staging |
-| `ALLOWED_IDENTITY_PROVIDER_IDS` | `["00000000-0000-0000-0000-000000000000"]` | yes                    |
-| `SESSION_DURATION`              | `24h`                                      | no                     |
+| Name                            | Example                                    | Required            |
+| ------------------------------- | ------------------------------------------ | ------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`         | `0123456789abcdef0123456789abcdef`         | yes                 |
+| `ENABLED_ENVIRONMENTS`          | `["staging","prod"]`                       | no; default is both |
+| `ALLOWED_IDENTITY_PROVIDER_IDS` | `["00000000-0000-0000-0000-000000000000"]` | yes                 |
+| `SESSION_DURATION`              | `24h`                                      | no                  |
 
 Environment variable の変更だけでは main push workflow は起動しません。値を変更した後は Actions 画面から `Access infrastructure` を main branch に対して手動実行します。手動実行で deploy できるのも main だけです。
 
@@ -126,7 +128,7 @@ backend 設定を変更した場合は、次のように再初期化します。
 ./tf.sh init -reconfigure
 ```
 
-Access application が既に手動または別 stack で作成済みなら、`apply` より先にこの state へ import してください。同じ domain や、より具体的な `/admin/...` path を管理する stack を複数残してはいけません。子 path の application は親の policy を継承せず、より具体的な設定が優先されます。
+Access application が既に手動または別 stack で作成済みなら、`apply` より先にこの state へ import してください。同じ hostname / path を管理する stack を複数残してはいけません。既存の `/admin` application から移行する場合も、先に次の `admin` address へ import すれば同じ ID / AUD のまま root application へ更新できます。resource address は state 互換性のため `admin` のまま維持しています。
 
 ```sh
 ./tf.sh import \
@@ -138,9 +140,29 @@ Access application が既に手動または別 stack で作成済みなら、`ap
   'accounts/<ACCOUNT_ID>/<PROD_APPLICATION_ID>'
 ```
 
-この stack はアプリ専用の `admin_login` policy を新規作成します。中央 repository が所有する共有 `JIZI Portal Auth` policy は別 state で管理されているため、こちらへ import してはいけません。
+`/v1` または `/openapi.json` の application が既に存在する場合は、対応する child address へも import します。存在しなければ Terraform が作成します。
 
-import する環境は、先に `enabled_environments` へ含めてください。特に既存 prod application は `prod` を追加した後、`apply` より前に import します。
+```sh
+./tf.sh import \
+  'cloudflare_zero_trust_access_application.public["staging_v1"]' \
+  'accounts/<ACCOUNT_ID>/<STAGING_V1_APPLICATION_ID>'
+
+./tf.sh import \
+  'cloudflare_zero_trust_access_application.public["staging_openapi"]' \
+  'accounts/<ACCOUNT_ID>/<STAGING_OPENAPI_APPLICATION_ID>'
+
+./tf.sh import \
+  'cloudflare_zero_trust_access_application.public["prod_v1"]' \
+  'accounts/<ACCOUNT_ID>/<PROD_V1_APPLICATION_ID>'
+
+./tf.sh import \
+  'cloudflare_zero_trust_access_application.public["prod_openapi"]' \
+  'accounts/<ACCOUNT_ID>/<PROD_OPENAPI_APPLICATION_ID>'
+```
+
+この stack はアプリ専用の `admin_login` policy と、公開 path 専用の `public_bypass` policy を作成します。中央 repository が所有する共有 `JIZI Portal Auth` policy は別 state で管理されているため、こちらへ import してはいけません。
+
+import する環境は、先に `enabled_environments` へ含めてください。段階 rollout で prod を無効にしている場合は、`prod` を追加した後、`apply` より前に既存 application を import します。
 
 application の `policies` はこの stack が authoritative に管理します。import 後の plan で、既存の deny / bypass / allow policy が意図せず外れないこと、再利用 policy の変更が他 application に波及しないことを確認してください。
 
@@ -154,20 +176,36 @@ apply 後に出力される値を `wrangler.jsonc` の `env.staging.vars` / `env
 
 Terraform と Wrangler が同じ Worker 設定を同時に所有すると競合するため、この stack は Worker vars 自体を更新せず、必要な値だけを出力します。
 
-初回 rollout は `enabled_environments` を使って一環境ずつ行います。Access application には `prevent_destroy` があるため、一度追加した環境を集合から取り除くことはできません。
+初回 rollout を段階的に行う場合は `enabled_environments` を使って一環境ずつ追加します。既定値と GitHub Environment `main` は staging / prod の両方です。root Access application には `prevent_destroy` があるため、一度追加した環境を集合から取り除くことはできません。
 
-1. staging の既存 Access application / 子 path を確認し、必要なら import
-2. `enabled_environments = ["staging"]` で Terraform を apply し、AUD と team domain を取得
-3. `wrangler.jsonc` の staging vars を更新し、`wrangler deploy --env staging --minify`
-4. staging の対話ログイン、未認証リクエストが origin へ到達しないこと（302 / 401 / 403）、公開 `/v1` を確認
-5. `enabled_environments = ["staging", "prod"]` に変更し、既存 prod application があれば import してから apply
-6. 同じ確認を prod で行う
+1. 既存の root / child application を確認し、必要なら import
+2. Terraform を apply し、root application の AUD と team domain を取得
+3. `wrangler.jsonc` の各環境の vars を更新し、`wrangler deploy --env staging --minify` と `wrangler deploy --env prod --minify`
+4. `/v1` と `/openapi.json` がログインなしで到達できることを両環境で確認
+5. `/admin` が未認証時に Access へ redirect され、指定 IdP でログインできることを確認
+6. `cloudflared access login` のブラウザ認証と、`cloudflared access curl` の API request が完了することを確認
+
+```sh
+cloudflared access login \
+  https://events26-staging.koudaisai.jp
+
+# 空の JSON は validation error (400) になるため、データを作らずに
+# Access token が origin まで届くことを確認できる。
+cloudflared access curl \
+  https://events26-staging.koudaisai.jp/admin/v1/projects \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+`bypass` path の request には Access の認証・Access request log が適用されません。public endpoint を増やす場合も child application を必要最小限の path で追加してください。
 
 現在の root `deploy` script は `--env` を付けないため、この rollout には使用しません。named environment を明示しない deploy では DB / Access vars が設定されません。
 
 ## 参考資料
 
 - [Cloudflare Access application paths](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)
+- [Cloudflare Access from a CLI](https://developers.cloudflare.com/cloudflare-one/tutorials/cli/)
 - [Cloudflare Terraform Access resources](https://developers.cloudflare.com/api/terraform/resources/zero_trust/)
 - [SOPS documentation](https://getsops.io/docs/)
 - [SOPS age identities](https://getsops.io/docs/usage/identities/age/)

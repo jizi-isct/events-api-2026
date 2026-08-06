@@ -9,9 +9,9 @@ variable "cloudflare_account_id" {
 }
 
 variable "enabled_environments" {
-  description = "Access application を作成する環境。初回は staging のみ、検証後に prod を追加する"
+  description = "Access application を作成する環境"
   type        = set(string)
-  default     = ["staging"]
+  default     = ["staging", "prod"]
 
   validation {
     condition = (
@@ -23,7 +23,7 @@ variable "enabled_environments" {
 }
 
 variable "allowed_identity_provider_ids" {
-  description = "管理 API へのログインとアクセスを許可する既存 Access Identity Provider の ID"
+  description = "保護対象へのログインとアクセスを許可する既存 Access Identity Provider の ID"
   type        = set(string)
 
   validation {
