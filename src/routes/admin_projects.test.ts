@@ -366,13 +366,28 @@ describe("DELETE /admin/v1/projects/:projectId", () => {
 });
 
 describe("OpenAPI", () => {
-  test("管理用エンドポイントを公開仕様に載せない", async () => {
+  test("管理用エンドポイントを公開仕様に載せる", async () => {
     const res = await app.request("/openapi.json", undefined, env);
-    const document = (await res.json()) as { paths: Record<string, unknown> };
+    const document = (await res.json()) as {
+      paths: Record<
+        string,
+        | {
+            post?: { operationId?: string };
+            put?: { operationId?: string };
+            delete?: { operationId?: string };
+          }
+        | undefined
+      >;
+    };
 
-    expect(Object.keys(document.paths)).not.toContain("/admin/v1/projects");
+    expect(document.paths["/admin/v1/projects"]?.post?.operationId).toBe(
+      "createProject",
+    );
     expect(
-      Object.keys(document.paths).filter((path) => path.startsWith("/admin")),
-    ).toEqual([]);
+      document.paths["/admin/v1/projects/{projectId}"]?.put?.operationId,
+    ).toBe("updateProject");
+    expect(
+      document.paths["/admin/v1/projects/{projectId}"]?.delete?.operationId,
+    ).toBe("deleteProject");
   });
 });

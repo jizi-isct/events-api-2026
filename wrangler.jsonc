@@ -25,8 +25,8 @@
       ],
       "vars": {
         // TODO: Access のチームドメインと、管理用アプリの AUD タグを入れる
-        "ACCESS_TEAM_DOMAIN": "https://CHANGEME.cloudflareaccess.com",
-        "ACCESS_AUD": "CHANGEME",
+        "ACCESS_TEAM_DOMAIN": "https://jizi-isct.cloudflareaccess.com",
+        "ACCESS_AUD": "310daeb3f02173ca85528afb56015715b1ea5c2f0debc3b51684d4e06a023f48",
       },
     },
     "prod": {

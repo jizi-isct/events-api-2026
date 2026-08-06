@@ -31,12 +31,11 @@ app.get(
       servers: [
         {
           description: "本番環境",
-          url: "https://events26.koudaisai.jp/v1",
+          url: "https://events26.koudaisai.jp",
         },
       ],
     },
-    // 管理用エンドポイントは公開仕様に載せない。
-    exclude: ["/openapi.json", /^\/admin\//],
+    exclude: ["/openapi.json"],
   }),
 );
 
