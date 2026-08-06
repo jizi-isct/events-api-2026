@@ -4,19 +4,9 @@ cloudflare_account_id = "00000000000000000000000000000000"
 enabled_environments = ["staging"]
 
 # 中央 infrastructure repository が管理している JIZI Portal OIDC など、
-# 対話的ログインを許可する既存 Identity Provider の ID。
+# ログインと管理 API へのアクセスを許可する既存 Identity Provider の ID。
 allowed_identity_provider_ids = [
   "00000000-0000-0000-0000-000000000000",
 ]
-
-# 管理者を既存 Access Group または個別メールアドレスで明示的に絞る。
-# IdP ID だけでは、その IdP を使える全ユーザーが一致するため認可に使わない。
-allowed_access_group_ids = [
-  "00000000-0000-0000-0000-000000000000",
-]
-allowed_emails = []
-
-# 機械から管理 API を呼ぶ場合だけ、既存 Service Token の ID を追加する。
-service_token_ids = []
 
 session_duration = "24h"
