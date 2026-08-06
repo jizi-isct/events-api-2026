@@ -7,7 +7,7 @@ import { TimeRangeSchema } from "./time";
  * {@link PlaceIdSchema} と {@link TimeRangeSchema} を結びつけて表現する．
  */
 export const OccasionSchema = v.object({
-  place: PlaceIdSchema,
+  place: v.optional(PlaceIdSchema),
   timeRange: TimeRangeSchema,
 });
 
