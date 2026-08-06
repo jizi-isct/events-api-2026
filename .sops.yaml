@@ -3,5 +3,5 @@ creation_rules:
     age:
       # JIZI infrastructure maintainer
       - age1c76gft3xhrawzcwq3zgdkgtmcqtzp7rgwhznsev49jc3nhjdnfcqey86ws
-      # GitHub Actions
-      - age1kjmcaswlvvud084mcc898vajej9yvk0ktxm556pklpvtukycs4ssw3lf8g
+      # events-api-2026 GitHub Actions
+      - age1kej798y957urrwftalcjlgejqsf36ym0h5y6leraq4vpv2gh5uasrk2new
