@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { openAPIRouteHandler } from "hono-openapi";
 import type { Bindings } from "./bindings";
 import { requireAccess } from "./middleware/access";
+import { adminProjectDetails } from "./routes/admin_project_details";
 import { adminProjects } from "./routes/admin_projects";
 import { places } from "./routes/places";
 import { projects } from "./routes/projects";
@@ -16,6 +17,7 @@ app.route("/v1/projects", projects);
 // 先頭セグメントごと保護しておけば、あとからルートを足しても漏れない。
 app.use("/admin/*", requireAccess);
 app.route("/admin/v1", adminProjects);
+app.route("/admin/v1", adminProjectDetails);
 
 app.get(
   "/openapi.json",
