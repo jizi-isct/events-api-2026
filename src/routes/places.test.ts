@@ -114,6 +114,7 @@ describe("GET /v1/places/:placeId", () => {
 
 interface OpenApiSpec {
   openapi: string;
+  servers?: { description?: string; url: string }[];
   paths: Record<
     string,
     | {
@@ -138,6 +139,12 @@ describe("GET /openapi.json", () => {
 
     const spec = (await res.json()) as OpenApiSpec;
     expect(spec.openapi).toBe("3.1.0");
+    expect(spec.servers).toEqual([
+      {
+        description: "本番環境",
+        url: "https://events26.koudaisai.jp",
+      },
+    ]);
     expect(spec.paths["/v1/places"]?.get?.operationId).toBe("listPlaces");
     expect(spec.paths["/v1/places/{placeId}"]?.get?.operationId).toBe(
       "getPlace",
