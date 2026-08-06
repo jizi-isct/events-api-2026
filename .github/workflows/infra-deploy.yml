@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment:
-      name: infrastructure
+      name: main
     concurrency:
       group: events-api-2026-access-infrastructure
       cancel-in-progress: false

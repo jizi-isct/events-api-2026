@@ -61,13 +61,13 @@ sops updatekeys infra/backend.wasabi.sops.env
 
 `.github/workflows/infra-deploy.yml` は、main 向け pull request では credentials を使わず Terraform の format / validate を行い、infra 関連ファイルが main へ push されたときに plan と apply を続けて実行します。pull request の merge commit だけでなく main への直接 push でも起動するため、merge 経由に限定するには main の branch ruleset が必要です。
 
-deploy job は GitHub Environment `infrastructure` を参照します。workflow を main へ merge する前に environment を作り、deployment branch を `main` のみに制限してください。完全自動 deploy にする場合は required reviewer を設定しません。required reviewer の承認は deploy job 全体、つまり plan の作成前に行われるため、生成された plan を確認する承認 gate ではありません。
+deploy job は GitHub Environment `main` を参照します。workflow を main へ merge する前に、deployment branch を `main` のみに制限してください。完全自動 deploy にする場合は required reviewer を設定しません。required reviewer の承認は deploy job 全体、つまり plan の作成前に行われるため、生成された plan を確認する承認 gate ではありません。
 
 初回の workflow merge より先に、次の準備を完了します。
 
 1. Wasabi bucket / sub-user を作成し、`backend.wasabi.sops.env` の5つの placeholder を実値へ変更して暗号文を commit
 2. ローカルから同じ backend を初期化し、既存 Access application があれば import して staging の plan を確認
-3. GitHub Environment `infrastructure` を作成し、以下の secrets / variables と main 限定 rule を設定
+3. GitHub Environment `main` に以下の secrets / variables と main 限定 rule を設定
 4. main の ruleset を有効化してから workflow の pull request を merge
 
 Environment secrets は次の2つです。
