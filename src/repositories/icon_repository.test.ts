@@ -89,3 +89,19 @@ describe("get", () => {
     expect(icon?.httpEtag).toBe(stored?.httpEtag);
   });
 });
+
+describe("delete", () => {
+  test("企画 ID に対応するアイコンだけを削除する", async () => {
+    await bucket.put("g1/original", "general");
+    await bucket.put("s1/original", "stage");
+
+    await repository.delete("g1");
+
+    expect(await bucket.get("g1/original")).toBeNull();
+    expect(await (await bucket.get("s1/original"))?.text()).toBe("stage");
+  });
+
+  test("アイコンが存在しない場合も成功する", async () => {
+    await expect(repository.delete("g1")).resolves.toBeUndefined();
+  });
+});

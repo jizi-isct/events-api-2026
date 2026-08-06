@@ -231,6 +231,27 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
     },
   )
   .delete(
+    "/projects/:projectId/icon",
+    describeRoute({
+      operationId: "deleteProjectIcon",
+      summary: "企画アイコンの削除",
+      description: "企画アイコンの原本を削除します。未登録の場合も成功します。",
+      tags: ["admin"],
+      responses: {
+        204: {
+          description: "削除に成功",
+        },
+        401: errorResponses[401],
+      },
+    }),
+    validator("param", ParamSchema),
+    async (c) => {
+      const { projectId } = c.req.valid("param");
+      await new IconRepository(c.env.ICON_BUCKET).delete(projectId);
+      return c.body(null, 204);
+    },
+  )
+  .delete(
     "/projects/:projectId",
     describeRoute({
       operationId: "deleteProject",

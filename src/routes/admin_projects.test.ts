@@ -470,6 +470,42 @@ describe("PUT /admin/v1/projects/:projectId/icon", () => {
   });
 });
 
+describe("DELETE /admin/v1/projects/:projectId/icon", () => {
+  test("アイコンだけを削除する", async () => {
+    await iconBucket.put("g1/original", "general");
+    await iconBucket.put("s1/original", "stage");
+
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(204);
+    expect(await iconBucket.get("g1/original")).toBeNull();
+    expect(await (await iconBucket.get("s1/original"))?.text()).toBe("stage");
+  });
+
+  test("アイコンが存在しない場合も 204", async () => {
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(204);
+  });
+
+  test("認証されていない場合は削除しない", async () => {
+    await iconBucket.put("g1/original", "icon");
+
+    const res = await app.request(
+      "/admin/v1/projects/g1/icon",
+      { method: "DELETE" },
+      env,
+    );
+
+    expect(res.status).toBe(401);
+    expect(await (await iconBucket.get("g1/original"))?.text()).toBe("icon");
+  });
+});
+
 describe("DELETE /admin/v1/projects/:projectId", () => {
   test("企画を削除する", async () => {
     await repository.create(general);
@@ -504,7 +540,10 @@ describe("OpenAPI", () => {
               requestBody?: { content?: Record<string, unknown> };
               responses?: Record<string, unknown>;
             };
-            delete?: { operationId?: string };
+            delete?: {
+              operationId?: string;
+              responses?: Record<string, unknown>;
+            };
           }
         | undefined
       >;
@@ -538,6 +577,14 @@ describe("OpenAPI", () => {
       "413",
       "415",
       "422",
+    ]);
+
+    const deleteIconOperation =
+      document.paths["/admin/v1/projects/{projectId}/icon"]?.delete;
+    expect(deleteIconOperation?.operationId).toBe("deleteProjectIcon");
+    expect(Object.keys(deleteIconOperation?.responses ?? {})).toEqual([
+      "204",
+      "401",
     ]);
   });
 });

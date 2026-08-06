@@ -34,4 +34,9 @@ export class IconRepository {
       httpMetadata: { contentType: icon.type },
     });
   }
+
+  /** 企画 ID に対応するアイコンの原本を削除する。未登録の場合も成功する。 */
+  async delete(projectId: ProjectId): Promise<void> {
+    await this.bucket.delete(originalIconKey(projectId));
+  }
 }
