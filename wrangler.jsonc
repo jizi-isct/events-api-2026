@@ -24,6 +24,10 @@
         "ACCESS_TEAM_DOMAIN": "https://jizi-isct.cloudflareaccess.com",
         "ACCESS_AUD": "310daeb3f02173ca85528afb56015715b1ea5c2f0debc3b51684d4e06a023f48",
       },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+      },
     },
     "prod": {
       "route": {
@@ -41,6 +45,10 @@
         // Terraform の wrangler_access_vars.prod と同期する。
         "ACCESS_TEAM_DOMAIN": "https://jizi-isct.cloudflareaccess.com",
         "ACCESS_AUD": "ec3bdff1fa3818da428e501c7a7c54d415c51bb3998452d9c04730f9d0265bc4",
+      },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
       },
     },
   },
@@ -72,8 +80,4 @@
   // "ai": {
   //   "binding": "AI"
   // },
-  // "observability": {
-  //   "enabled": true,
-  //   "head_sampling_rate": 1
-  // }
 }
