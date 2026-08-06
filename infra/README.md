@@ -57,6 +57,46 @@ recipient を変更したときは `.sops.yaml` の変更だけでは既存暗�
 sops updatekeys infra/backend.wasabi.sops.env
 ```
 
+## GitHub Actions
+
+`.github/workflows/infra-deploy.yml` は、main 向け pull request では credentials を使わず Terraform の format / validate を行い、infra 関連ファイルが main へ push されたときに plan と apply を続けて実行します。pull request の merge commit だけでなく main への直接 push でも起動するため、merge 経由に限定するには main の branch ruleset が必要です。
+
+deploy job は GitHub Environment `infrastructure` を参照します。workflow を main へ merge する前に environment を作り、deployment branch を `main` のみに制限してください。完全自動 deploy にする場合は required reviewer を設定しません。required reviewer の承認は deploy job 全体、つまり plan の作成前に行われるため、生成された plan を確認する承認 gate ではありません。
+
+初回の workflow merge より先に、次の準備を完了します。
+
+1. Wasabi bucket / sub-user を作成し、`backend.wasabi.sops.env` の5つの placeholder を実値へ変更して暗号文を commit
+2. ローカルから同じ backend を初期化し、既存 Access application / policy があれば import して staging の plan を確認
+3. GitHub Environment `infrastructure` を作成し、以下の secrets / variables と main 限定 rule を設定
+4. main の ruleset を有効化してから workflow の pull request を merge
+
+Environment secrets は次の2つです。
+
+- `SOPS_AGE_KEY`: `.sops.yaml` の GitHub Actions recipient に対応する age private identity
+- `CLOUDFLARE_API_TOKEN`: 対象 Account 限定の Access 用 API token
+
+Wasabi credentials は暗号化済み `backend.wasabi.sops.env` から取得するため、Actions secrets へ重複登録しません。既存の別 repository の Actions secret は値を読み戻せないため、管理元の password manager などから age identity を取得してください。共通 CI identity の影響範囲を分離する場合は、この repository 専用の age keypairを作り、`.sops.yaml` と暗号文の recipient を更新します。
+
+Environment variables は次のとおりです。set 型の値は JSON 配列で指定します。
+
+| Name                            | Example                                    | Required                |
+| ------------------------------- | ------------------------------------------ | ----------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`         | `0123456789abcdef0123456789abcdef`         | yes                     |
+| `ENABLED_ENVIRONMENTS`          | `["staging"]`                              | no; default is staging  |
+| `ALLOWED_IDENTITY_PROVIDER_IDS` | `["00000000-0000-0000-0000-000000000000"]` | yes                     |
+| `ALLOWED_ACCESS_GROUP_IDS`      | `["00000000-0000-0000-0000-000000000000"]` | group or email required |
+| `ALLOWED_EMAILS`                | `[]`                                       | group or email required |
+| `SERVICE_TOKEN_IDS`             | `[]`                                       | no                      |
+| `SESSION_DURATION`              | `24h`                                      | no                      |
+
+Environment variable の変更だけでは main push workflow は起動しません。値を変更した後は Actions 画面から `Access infrastructure` を main branch に対して手動実行します。手動実行で deploy できるのも main だけです。
+
+main の ruleset では、少なくとも pull request 経由、review、`Validate Terraform` check の成功を必須にし、force push と branch deletion を禁止します。`infra/**`、`.sops.yaml`、`.github/workflows/**` は CODEOWNERS review の対象にすることを推奨します。
+
+Repository Settings の Actions default workflow permissions も `Read repository contents and packages permissions` にします。この workflow 自体も `contents: read` だけを明示しています。
+
+workflow は同時 apply を直列化し、Wasabi の state lock も利用します。plan は runner の一時領域だけに保存して同じ job で applyし、artifact にはアップロードしません。SOPS から復号した Wasabi credentials は GitHub が自動 mask する Actions secret ではないため、workflow へ `set -x`、環境変数の出力、plan の upload を追加してはいけません。
+
 ## 初期化と操作
 
 実 tfvars を作成し、Account ID / Identity Provider ID / 管理者条件を実値へ変更します。
