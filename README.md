@@ -23,6 +23,8 @@ workflow は GitHub Environment `main` に登録済みの次の値を使用し�
 - secret `CLOUDFLARE_API_TOKEN`
 - variable `CLOUDFLARE_ACCOUNT_ID`
 
+Workerをデプロイする前に、対象環境のremote D1へ未適用migrationを順番に適用します。migrationが失敗した場合はWorkerをデプロイしません。Cloudflare API tokenにはWorkerのデプロイ権限に加えてD1の編集権限が必要です。
+
 デプロイ後は対応する custom domain の `/openapi.json` が成功することまで確認します。GitHub Actions を唯一の自動デプロイ経路とし、Cloudflare Workers Builds の automatic deploy は併用しません。
 
 ローカルから明示的にデプロイする場合は、対象環境を指定します。
