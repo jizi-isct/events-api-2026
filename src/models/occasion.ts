@@ -6,9 +6,12 @@ import { TimeRangeSchema } from "./time";
  * 時と場所を表す。
  * {@link PlaceIdSchema} と {@link TimeRangeSchema} を結びつけて表現する．
  */
-export const OccasionSchema = v.object({
-  place: v.optional(PlaceIdSchema),
-  timeRange: TimeRangeSchema,
-});
+export const OccasionSchema = v.pipe(
+  v.object({
+    place: v.optional(PlaceIdSchema),
+    timeRange: TimeRangeSchema,
+  }),
+  v.metadata({ ref: "Occasion" }),
+);
 
 export type Occasion = v.InferInput<typeof OccasionSchema>;
