@@ -1,0 +1,7 @@
+creation_rules:
+  - path_regex: ^infra/backend\.wasabi\.sops\.env$
+    age:
+      # JIZI infrastructure maintainer
+      - age1c76gft3xhrawzcwq3zgdkgtmcqtzp7rgwhznsev49jc3nhjdnfcqey86ws
+      # GitHub Actions
+      - age1kjmcaswlvvud084mcc898vajej9yvk0ktxm556pklpvtukycs4ssw3lf8g
