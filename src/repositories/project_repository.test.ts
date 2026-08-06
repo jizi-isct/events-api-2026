@@ -291,6 +291,44 @@ describe("update", () => {
   });
 });
 
+describe("updateDescription", () => {
+  test("説明だけを書き換える", async () => {
+    const original = general();
+    await repository.create(original);
+
+    await repository.updateDescription("g1", "新しい説明");
+
+    expect(await repository.get("g1")).toEqual(
+      general({ description: "新しい説明" }),
+    );
+  });
+
+  test("タグと occasion は保たれる", async () => {
+    await repository.create(general());
+
+    await repository.updateDescription("g1", "新しい説明");
+
+    expect(await countRows("project_tags", "g1")).toBe(2);
+    expect(await countRows("project_occasions", "g1")).toBe(1);
+  });
+
+  test("他の企画には影響しない", async () => {
+    const other = foodStall();
+    await repository.create(general());
+    await repository.create(other);
+
+    await repository.updateDescription("g1", "新しい説明");
+
+    expect(await repository.get("f1")).toEqual(other);
+  });
+
+  test("存在しない企画は ProjectNotFoundError を投げる", async () => {
+    await expect(
+      repository.updateDescription("g1", "新しい説明"),
+    ).rejects.toThrow(ProjectNotFoundError);
+  });
+});
+
 describe("存在しない企画の update / delete", () => {
   // 子の有無で失敗の仕方が変わらないこと。子があると外部キー違反、
   // なければ無言で成功、という非対称がかつてあった。

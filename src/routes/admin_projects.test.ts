@@ -344,6 +344,61 @@ describe("PUT /admin/v1/projects/:projectId", () => {
   });
 });
 
+describe("PATCH /admin/v1/projects/:projectId/description", () => {
+  test("説明だけを書き換える", async () => {
+    await repository.create(general);
+
+    const res = await authorized("/admin/v1/projects/g1/description", {
+      method: "PATCH",
+      body: JSON.stringify({ description: "新しい説明" }),
+    });
+
+    const updated: Project = { ...general, description: "新しい説明" };
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(updated);
+    expect(await repository.get("g1")).toEqual(updated);
+  });
+
+  test("存在しない企画は 404", async () => {
+    const res = await authorized("/admin/v1/projects/g1/description", {
+      method: "PATCH",
+      body: JSON.stringify({ description: "新しい説明" }),
+    });
+
+    expect(res.status).toBe(404);
+  });
+
+  test("description の無いボディは 400", async () => {
+    await repository.create(general);
+
+    const res = await authorized("/admin/v1/projects/g1/description", {
+      method: "PATCH",
+      body: JSON.stringify({ projectName: "改題" }),
+    });
+
+    expect(res.status).toBe(400);
+    expect(await repository.get("g1")).toEqual(general);
+  });
+
+  test("トークンが無ければ 401", async () => {
+    await repository.create(general);
+
+    const res = await app.request(
+      "/admin/v1/projects/g1/description",
+      {
+        method: "PATCH",
+        body: JSON.stringify({ description: "新しい説明" }),
+        headers: { "Content-Type": "application/json" },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(401);
+    expect(await repository.get("g1")).toEqual(general);
+  });
+});
+
 describe("DELETE /admin/v1/projects/:projectId", () => {
   test("企画を削除する", async () => {
     await repository.create(general);
@@ -374,6 +429,7 @@ describe("OpenAPI", () => {
         | {
             post?: { operationId?: string };
             put?: { operationId?: string };
+            patch?: { operationId?: string };
             delete?: { operationId?: string };
           }
         | undefined
@@ -389,5 +445,9 @@ describe("OpenAPI", () => {
     expect(
       document.paths["/admin/v1/projects/{projectId}"]?.delete?.operationId,
     ).toBe("deleteProject");
+    expect(
+      document.paths["/admin/v1/projects/{projectId}/description"]?.patch
+        ?.operationId,
+    ).toBe("updateProjectDescription");
   });
 });

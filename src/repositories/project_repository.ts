@@ -304,6 +304,24 @@ export class ProjectRepository {
   }
 
   /**
+   * 企画の説明だけを書き換える。他の列・タグ・occasion には触れない。
+   * @throws {ProjectNotFoundError} 対象の企画が存在しない場合。
+   */
+  async updateDescription(
+    projectId: ProjectId,
+    description: string,
+  ): Promise<void> {
+    const result = await this.db
+      .prepare(`UPDATE projects SET description = ? WHERE id = ?`)
+      .bind(description, projectId)
+      .run();
+
+    if (result.meta.changes === 0) {
+      throw new ProjectNotFoundError(projectId);
+    }
+  }
+
+  /**
    * 企画を削除する。タグと occasion は ON DELETE CASCADE で一緒に消える。
    * @throws {ProjectNotFoundError} 対象の企画が存在しない場合。
    */
