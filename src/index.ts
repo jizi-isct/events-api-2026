@@ -3,10 +3,12 @@ import { openAPIRouteHandler } from "hono-openapi";
 import type { Bindings } from "./bindings";
 import { requireAccess } from "./middleware/access";
 import { places } from "./routes/places";
+import { projects } from "./routes/projects";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
 app.route("/v1/places", places);
+app.route("/v1/projects", projects);
 
 // 書き込み系は /admin 配下にまとめる。Access はホスト名とパスでしか
 // 対象を指定できず、メソッドによる出し分けができないため。
