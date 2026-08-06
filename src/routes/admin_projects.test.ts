@@ -318,6 +318,123 @@ describe("POST /admin/v1/projects", () => {
   });
 });
 
+describe("POST /admin/v1/projects/bulk", () => {
+  const stage: Project = {
+    id: "s1",
+    type: "stage",
+    groupName: "サークルD",
+    projectName: "ダンスステージ",
+    description: "説明",
+    isChildFriendly: true,
+    isRecommended: false,
+    occasions: [
+      {
+        place: "east.wood-deck",
+        timeRange: {
+          start: { date: 2, hour: 13, minute: 0 },
+          end: { date: 2, hour: 14, minute: 0 },
+        },
+      },
+    ],
+  };
+
+  test("企画をまとめて登録する", async () => {
+    const res = await authorized("/admin/v1/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify([general, stage]),
+    });
+
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual([general, stage]);
+    expect(await repository.get("g1")).toEqual(general);
+    expect(await repository.get("s1")).toEqual(stage);
+  });
+
+  test("空配列でも 201", async () => {
+    const res = await authorized("/admin/v1/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify([]),
+    });
+
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual([]);
+  });
+
+  test("既にある ID が含まれていたら 409", async () => {
+    await repository.create(general);
+
+    const res = await authorized("/admin/v1/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify([stage, { ...general, projectName: "別の企画" }]),
+    });
+
+    expect(res.status).toBe(409);
+    expect(await repository.get("g1")).toEqual(general);
+    // 一件でも駄目なら一件も入らないこと
+    expect(await repository.get("s1")).toBeNull();
+  });
+
+  test("同じ ID を二件含んでいたら 400", async () => {
+    const res = await authorized("/admin/v1/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify([general, { ...general, projectName: "別の企画" }]),
+    });
+
+    expect(res.status).toBe(400);
+    expect(await repository.get("g1")).toBeNull();
+  });
+
+  test("モデルとして不正な要素が混ざっていたら 400", async () => {
+    const res = await authorized("/admin/v1/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify([general, { ...stage, type: "unknown-type" }]),
+    });
+
+    expect(res.status).toBe(400);
+    expect(await repository.get("g1")).toBeNull();
+  });
+
+  test("配列でないボディは 400", async () => {
+    const res = await authorized("/admin/v1/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify(general),
+    });
+
+    expect(res.status).toBe(400);
+    expect(await repository.get("g1")).toBeNull();
+  });
+
+  test("100 件を超えていたら 400", async () => {
+    const projects = Array.from({ length: 101 }, (_, index) => ({
+      ...general,
+      id: `g${index}`,
+    }));
+
+    const res = await authorized("/admin/v1/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify(projects),
+    });
+
+    expect(res.status).toBe(400);
+    expect(await repository.get("g0")).toBeNull();
+  });
+
+  test("トークンが無ければ 401", async () => {
+    const res = await app.request(
+      "/admin/v1/projects/bulk",
+      {
+        method: "POST",
+        body: JSON.stringify([general, stage]),
+        headers: { "Content-Type": "application/json" },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(401);
+    expect(await repository.get("g1")).toBeNull();
+  });
+});
+
 describe("PUT /admin/v1/projects/:projectId", () => {
   test("企画を置き換える", async () => {
     await repository.create(general);
@@ -607,6 +724,9 @@ describe("OpenAPI", () => {
 
     expect(document.paths["/admin/v1/projects"]?.post?.operationId).toBe(
       "createProject",
+    );
+    expect(document.paths["/admin/v1/projects/bulk"]?.post?.operationId).toBe(
+      "createProjects",
     );
     expect(
       document.paths["/admin/v1/projects/{projectId}"]?.put?.operationId,

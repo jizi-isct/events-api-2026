@@ -26,6 +26,16 @@ const ProjectDescriptionSchema = v.pipe(
   v.metadata({ ref: "ProjectDescription" }),
 );
 
+// 一括登録の上限。D1 の batch は単一トランザクションで、文の数だけ
+// 待ち時間が伸びるため、一度に扱う企画数を区切っておく。
+const MAX_BULK_PROJECTS = 100;
+
+const ProjectListSchema = v.pipe(
+  v.array(ProjectSchema),
+  v.maxLength(MAX_BULK_PROJECTS),
+  v.metadata({ ref: "ProjectList" }),
+);
+
 const MAX_ICON_SIZE = 20_000_000;
 
 const BinaryImageSchema = {
@@ -84,6 +94,64 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       await repository.create(project);
 
       return c.json(project, 201);
+    },
+  )
+  .post(
+    "/projects/bulk",
+    describeRoute({
+      operationId: "createProjects",
+      summary: "企画の一括登録",
+      description:
+        `企画をまとめて新規登録します。ID は呼び出し側が指定します。` +
+        `一件でも登録できなければ、一件も登録されません。` +
+        `一度に登録できるのは ${MAX_BULK_PROJECTS} 件までです。`,
+      tags: ["admin"],
+      responses: {
+        ...errorResponses,
+        201: {
+          description: "登録した企画",
+          content: {
+            "application/json": { schema: resolver(ProjectListSchema) },
+          },
+        },
+        409: {
+          description: "同じ ID の企画が既に存在する",
+          content: {
+            "application/json": { schema: resolver(MessageSchema) },
+          },
+        },
+      },
+    }),
+    validator("json", ProjectListSchema),
+    async (c) => {
+      const projects = c.req.valid("json");
+      const ids = projects.map((project) => project.id);
+      const duplicated = ids.filter((id, index) => ids.indexOf(id) !== index);
+
+      // 同じ ID を含んだまま登録すると、後の一件が主キー違反で落ちて
+      // 全体が失敗する。何が悪いのかを呼び出し側に伝えるため先に弾く。
+      if (duplicated.length > 0) {
+        return c.json(
+          {
+            message: `Duplicate IDs in request: ${[...new Set(duplicated)].join(", ")}`,
+          },
+          400,
+        );
+      }
+
+      const repository = new ProjectRepository(c.env.DB);
+      const existing = await repository.findExistingIds(ids);
+
+      if (existing.length > 0) {
+        return c.json(
+          { message: `Projects already exist: ${existing.join(", ")}` },
+          409,
+        );
+      }
+
+      await repository.createMany(projects);
+
+      return c.json(projects, 201);
     },
   )
   .put(
