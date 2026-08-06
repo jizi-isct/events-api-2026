@@ -10,3 +10,9 @@ allowed_identity_provider_ids = [
 ]
 
 session_duration = "24h"
+
+# ブラウザを持たない CI / 外部システム用の service token。
+service_token_duration = "8760h"
+
+# secret を再発行するときだけ 1 から順に増やす。
+# service_token_secret_version = 1

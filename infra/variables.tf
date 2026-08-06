@@ -43,3 +43,31 @@ variable "session_duration" {
   type        = string
   default     = "24h"
 }
+
+variable "service_token_duration" {
+  description = "Access service token の有効期間"
+  type        = string
+  default     = "8760h"
+
+  validation {
+    condition     = can(regex("^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$", var.service_token_duration))
+    error_message = "service_token_duration must be a Go duration such as 8760h or 2h45m."
+  }
+}
+
+variable "service_token_secret_version" {
+  description = "Access service token の client secret 版番号。増やすと secret を再発行する"
+  type        = number
+  default     = null
+
+  validation {
+    condition = (
+      var.service_token_secret_version == null ||
+      (
+        floor(var.service_token_secret_version) == var.service_token_secret_version &&
+        var.service_token_secret_version >= 1
+      )
+    )
+    error_message = "service_token_secret_version must be an integer of 1 or greater."
+  }
+}
