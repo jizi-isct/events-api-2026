@@ -33,7 +33,7 @@ interface TagRow {
 
 interface OccasionRow {
   project_id: string;
-  place_id: string;
+  place_id: string | null;
   start_date: number;
   start_hour: number;
   start_minute: number;
@@ -123,7 +123,8 @@ const toProject = (
     isChildFriendly: row.is_child_friendly === 1,
     isRecommended: row.is_recommended === 1,
     occasions: occasionRows.map((occasion) => ({
-      place: occasion.place_id,
+      // place は任意。DB の NULL はキーごと落として undefined に揃える。
+      place: occasion.place_id ?? undefined,
       timeRange: {
         start: {
           date: occasion.start_date,
@@ -402,7 +403,8 @@ export class ProjectRepository {
       insert.bind(
         project.id,
         position,
-        occasion.place,
+        // place は任意。D1 の bind は undefined を受け付けないため null に寄せる。
+        occasion.place ?? null,
         occasion.timeRange.start.date,
         occasion.timeRange.start.hour,
         occasion.timeRange.start.minute,
