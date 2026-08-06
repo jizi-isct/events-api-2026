@@ -1,10 +1,17 @@
 import { Hono } from "hono";
 import { openAPIRouteHandler } from "hono-openapi";
+import type { Bindings } from "./bindings";
+import { requireAccess } from "./middleware/access";
 import { places } from "./routes/places";
 
-const app = new Hono();
+const app = new Hono<{ Bindings: Bindings }>();
 
 app.route("/v1/places", places);
+
+// 書き込み系は /admin 配下にまとめる。Access はホスト名とパスでしか
+// 対象を指定できず、メソッドによる出し分けができないため。
+// 先頭セグメントごと保護しておけば、あとからルートを足しても漏れない。
+app.use("/admin/*", requireAccess);
 
 app.get(
   "/openapi.json",

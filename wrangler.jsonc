@@ -3,6 +3,9 @@
   "name": "events-api-2026",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-13",
+  // Access はカスタムドメインのルートにしか掛からないため、
+  // workers.dev の裏口を塞いでおく。
+  "workers_dev": false,
   "route": {
     "custom_domain": true,
     "pattern": "events26.koudaisai.jp",
@@ -15,11 +18,16 @@
       },
       "d1_databases": [
         {
-          "binding": "events_api_2026_staging",
+          "binding": "DB",
           "database_name": "events-api-2026-staging",
           "database_id": "b4e851c0-fb6b-48e8-be1b-c7805cbc0780",
         },
       ],
+      "vars": {
+        // TODO: Access のチームドメインと、管理用アプリの AUD タグを入れる
+        "ACCESS_TEAM_DOMAIN": "https://CHANGEME.cloudflareaccess.com",
+        "ACCESS_AUD": "CHANGEME",
+      },
     },
     "prod": {
       "route": {
@@ -28,11 +36,16 @@
       },
       "d1_databases": [
         {
-          "binding": "events_api_2026_prod",
+          "binding": "DB",
           "database_name": "events-api-2026-prod",
           "database_id": "eedea329-37af-4baa-ba98-2a4c52bb9441",
         },
       ],
+      "vars": {
+        // TODO: Access のチームドメインと、管理用アプリの AUD タグを入れる
+        "ACCESS_TEAM_DOMAIN": "https://CHANGEME.cloudflareaccess.com",
+        "ACCESS_AUD": "CHANGEME",
+      },
     },
   },
   // "compatibility_flags": [

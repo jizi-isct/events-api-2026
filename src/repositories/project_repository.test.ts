@@ -9,7 +9,7 @@ import { ProjectNotFoundError, ProjectRepository } from "./project_repository";
  */
 type ProjectOf<T extends ProjectType> = Project & { type: T };
 
-const db = env.events_api_2026_staging;
+const db = env.DB;
 
 let repository: ProjectRepository;
 
