@@ -21,6 +21,11 @@ const MessageSchema = v.object({
 
 const ParamSchema = v.object({ projectId: ProjectIdSchema });
 
+const ProjectDescriptionSchema = v.pipe(
+  v.object({ description: v.string() }),
+  v.metadata({ ref: "ProjectDescription" }),
+);
+
 const MAX_ICON_SIZE = 20_000_000;
 
 const BinaryImageSchema = {
@@ -127,6 +132,56 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
           return c.json({ message: `Unknown project ID: ${projectId}` }, 404);
         }
         throw error;
+      }
+
+      return c.json(project);
+    },
+  )
+  .patch(
+    "/projects/:projectId/description",
+    describeRoute({
+      operationId: "updateProjectDescription",
+      summary: "企画説明の更新",
+      description:
+        "企画の説明だけを書き換えます。他の項目・タグ・開催予定は変わりません。",
+      tags: ["admin"],
+      responses: {
+        ...errorResponses,
+        200: {
+          description: "更新後の企画",
+          content: {
+            "application/json": { schema: resolver(ProjectSchema) },
+          },
+        },
+        404: {
+          description: "指定したIDの企画が存在しない",
+          content: {
+            "application/json": { schema: resolver(MessageSchema) },
+          },
+        },
+      },
+    }),
+    validator("param", ParamSchema),
+    validator("json", ProjectDescriptionSchema),
+    async (c) => {
+      const { projectId } = c.req.valid("param");
+      const { description } = c.req.valid("json");
+      const repository = new ProjectRepository(c.env.DB);
+
+      try {
+        await repository.updateDescription(projectId, description);
+      } catch (error) {
+        if (error instanceof ProjectNotFoundError) {
+          return c.json({ message: `Unknown project ID: ${projectId}` }, 404);
+        }
+        throw error;
+      }
+
+      const project = await repository.get(projectId);
+
+      // 更新直後に消えていた場合。呼び出し側から見れば対象が無いのと同じ。
+      if (project === null) {
+        return c.json({ message: `Unknown project ID: ${projectId}` }, 404);
       }
 
       return c.json(project);
