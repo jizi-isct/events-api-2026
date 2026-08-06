@@ -144,6 +144,14 @@ describe("create と get のラウンドトリップ", () => {
     expect(await repository.get(project.id)).toEqual(project);
   });
 
+  test("場所未定の occasion を保存して読み戻せる", async () => {
+    // place は任意。undefined のまま bind すると D1 が投げるため null に寄せている。
+    const project = general({ occasions: [occasionAt(undefined, 10)] });
+    await repository.create(project);
+
+    expect(await repository.get(project.id)).toEqual(project);
+  });
+
   test("isTour が false の研究室企画を保存できる", async () => {
     const project = laboratory({ isTour: false });
     await repository.create(project);
@@ -320,6 +328,15 @@ describe("update", () => {
     expect(await repository.get("g1")).toEqual(updated);
     expect(await countRows("project_tags", "g1")).toBe(1);
     expect(await countRows("project_occasions", "g1")).toBe(1);
+  });
+
+  test("occasion の場所を未定に戻せる", async () => {
+    await repository.create(general());
+    const updated = general({ occasions: [occasionAt(undefined, 14)] });
+
+    await repository.update(updated);
+
+    expect(await repository.get("g1")).toEqual(updated);
   });
 
   test("タグと occasion を空にできる", async () => {
