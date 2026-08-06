@@ -8,7 +8,7 @@ export type Bindings = {
   DB: D1Database;
   /** Access チームのドメイン(例: https://example.cloudflareaccess.com)。 */
   ACCESS_TEAM_DOMAIN: string;
-  /** 管理用 Access アプリケーションの Application Audience (AUD) タグ。 */
+  /** ホストのルート保護用 Access application の Audience (AUD) タグ。 */
   ACCESS_AUD: string;
   /**
    * ローカル開発で Access の検証を迂回するためのフラグ。

@@ -23,7 +23,7 @@ variable "enabled_environments" {
 }
 
 variable "allowed_identity_provider_ids" {
-  description = "管理 API へのログインとアクセスを許可する既存 Access Identity Provider の ID"
+  description = "保護対象へのログインとアクセスを許可する既存 Access Identity Provider の ID"
   type        = set(string)
 
   validation {
