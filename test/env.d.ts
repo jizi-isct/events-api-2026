@@ -6,6 +6,10 @@ declare global {
       // テストは wrangler.jsonc の staging 環境で動かすため、必ず存在する。
       // 生成された型ではトップレベル設定に D1 が無いため optional になっている。
       DB: D1Database;
+      /** 画像の形式・寸法判定に使うローカル Images binding。 */
+      IMAGES: ImagesBinding;
+      /** 企画アイコンの原本を保存するローカル R2 bucket。 */
+      ICON_BUCKET: R2Bucket;
       /** vitest.config.ts で注入される、migrations/ の内容。 */
       TEST_MIGRATIONS: D1Migration[];
       /** vitest.config.ts で注入される、wrangler.jsonc の中身。 */

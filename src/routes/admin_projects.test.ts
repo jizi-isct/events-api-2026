@@ -5,12 +5,14 @@ import {
   TEST_ACCESS_AUD,
   TEST_ACCESS_TEAM_DOMAIN,
 } from "../../test/access_config";
+import { LANDSCAPE_PNG, SQUARE_PNG } from "../../test/icon_fixtures";
 import app from "../index";
 import { DEV_BYPASS_VALUE } from "../middleware/access";
 import type { Project } from "../models/project";
 import { ProjectRepository } from "../repositories/project_repository";
 
 const db = env.DB;
+const iconBucket = env.ICON_BUCKET;
 const repository = new ProjectRepository(db);
 
 const TEAM_DOMAIN = TEST_ACCESS_TEAM_DOMAIN;
@@ -105,6 +107,18 @@ const general: Project = {
 
 beforeEach(async () => {
   await db.prepare(`DELETE FROM projects`).run();
+
+  let listed = await iconBucket.list();
+
+  while (true) {
+    await iconBucket.delete(listed.objects.map((object) => object.key));
+
+    if (!listed.truncated) {
+      break;
+    }
+
+    listed = await iconBucket.list({ cursor: listed.cursor });
+  }
 });
 
 describe("Access による保護", () => {
@@ -399,6 +413,154 @@ describe("PATCH /admin/v1/projects/:projectId/description", () => {
   });
 });
 
+describe("PUT /admin/v1/projects/:projectId/icon", () => {
+  test("正方形の画像を保存する", async () => {
+    await repository.create(general);
+
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: new Blob([SQUARE_PNG]),
+    });
+
+    expect(res.status).toBe(204);
+    const stored = await iconBucket.get("g1/original");
+    expect(new Uint8Array(await stored!.arrayBuffer())).toEqual(SQUARE_PNG);
+    expect(stored?.httpMetadata?.contentType).toBe("image/png");
+  });
+
+  test("実データから判定した Content-Type で保存する", async () => {
+    await repository.create(general);
+
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "PUT",
+      headers: { "Content-Type": "image/jpeg" },
+      body: new Blob([SQUARE_PNG]),
+    });
+
+    expect(res.status).toBe(204);
+    expect(
+      (await iconBucket.head("g1/original"))?.httpMetadata?.contentType,
+    ).toBe("image/png");
+  });
+
+  test("存在しない企画は 404", async () => {
+    const res = await authorized("/admin/v1/projects/unknown/icon", {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: new Blob([SQUARE_PNG]),
+    });
+
+    expect(res.status).toBe(404);
+    expect(await iconBucket.get("unknown/original")).toBeNull();
+  });
+
+  test("縦横比が 1:1 でない画像は 422", async () => {
+    await repository.create(general);
+    await iconBucket.put("g1/original", "existing", {
+      httpMetadata: { contentType: "image/png" },
+    });
+
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: new Blob([LANDSCAPE_PNG]),
+    });
+
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ message: "Icon must be square: 2x1" });
+    expect(await (await iconBucket.get("g1/original"))?.text()).toBe(
+      "existing",
+    );
+  });
+
+  test("画像でないデータは 415", async () => {
+    await repository.create(general);
+
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: "not an image",
+    });
+
+    expect(res.status).toBe(415);
+    expect(await iconBucket.get("g1/original")).toBeNull();
+  });
+
+  test("寸法を検証できない SVG は 415", async () => {
+    await repository.create(general);
+
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "PUT",
+      headers: { "Content-Type": "image/svg+xml" },
+      body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>',
+    });
+
+    expect(res.status).toBe(415);
+    expect(await iconBucket.get("g1/original")).toBeNull();
+  });
+
+  test("空の画像データは 400", async () => {
+    await repository.create(general);
+
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: "",
+    });
+
+    expect(res.status).toBe(400);
+    expect(await iconBucket.get("g1/original")).toBeNull();
+  });
+
+  test("20 MB を超える画像データは 413", async () => {
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: new Uint8Array(20_000_001),
+    });
+
+    expect(res.status).toBe(413);
+    expect(await iconBucket.get("g1/original")).toBeNull();
+  });
+});
+
+describe("DELETE /admin/v1/projects/:projectId/icon", () => {
+  test("アイコンだけを削除する", async () => {
+    await iconBucket.put("g1/original", "general");
+    await iconBucket.put("s1/original", "stage");
+
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(204);
+    expect(await iconBucket.get("g1/original")).toBeNull();
+    expect(await (await iconBucket.get("s1/original"))?.text()).toBe("stage");
+  });
+
+  test("アイコンが存在しない場合も 204", async () => {
+    const res = await authorized("/admin/v1/projects/g1/icon", {
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(204);
+  });
+
+  test("認証されていない場合は削除しない", async () => {
+    await iconBucket.put("g1/original", "icon");
+
+    const res = await app.request(
+      "/admin/v1/projects/g1/icon",
+      { method: "DELETE" },
+      env,
+    );
+
+    expect(res.status).toBe(401);
+    expect(await (await iconBucket.get("g1/original"))?.text()).toBe("icon");
+  });
+});
+
 describe("DELETE /admin/v1/projects/:projectId", () => {
   test("企画を削除する", async () => {
     await repository.create(general);
@@ -428,9 +590,16 @@ describe("OpenAPI", () => {
         string,
         | {
             post?: { operationId?: string };
-            put?: { operationId?: string };
+            put?: {
+              operationId?: string;
+              requestBody?: { content?: Record<string, unknown> };
+              responses?: Record<string, unknown>;
+            };
             patch?: { operationId?: string };
-            delete?: { operationId?: string };
+            delete?: {
+              operationId?: string;
+              responses?: Record<string, unknown>;
+            };
           }
         | undefined
       >;
@@ -449,5 +618,33 @@ describe("OpenAPI", () => {
       document.paths["/admin/v1/projects/{projectId}/description"]?.patch
         ?.operationId,
     ).toBe("updateProjectDescription");
+
+    const iconOperation =
+      document.paths["/admin/v1/projects/{projectId}/icon"]?.put;
+    expect(iconOperation?.operationId).toBe("updateProjectIcon");
+    expect(Object.keys(iconOperation?.requestBody?.content ?? {})).toEqual([
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+      "image/heic",
+    ]);
+    expect(Object.keys(iconOperation?.responses ?? {})).toEqual([
+      "204",
+      "400",
+      "401",
+      "404",
+      "413",
+      "415",
+      "422",
+    ]);
+
+    const deleteIconOperation =
+      document.paths["/admin/v1/projects/{projectId}/icon"]?.delete;
+    expect(deleteIconOperation?.operationId).toBe("deleteProjectIcon");
+    expect(Object.keys(deleteIconOperation?.responses ?? {})).toEqual([
+      "204",
+      "401",
+    ]);
   });
 });
