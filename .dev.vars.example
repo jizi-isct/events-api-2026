@@ -1,0 +1,7 @@
+# wrangler dev のときだけ読まれる。コピーして .dev.vars を作る。
+#   cp .dev.vars.example .dev.vars
+# .dev.vars は .gitignore 済み。
+
+# Access はエッジのサービスなのでローカルには介在せず、JWT を発行できない。
+# この値を入れたときだけ、localhost 宛のリクエストに限り検証を飛ばす。
+ACCESS_DEV_BYPASS="local-development-only"

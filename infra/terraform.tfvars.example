@@ -1,0 +1,12 @@
+cloudflare_account_id = "00000000000000000000000000000000"
+
+# 初回は staging だけを作り、動作確認後に "prod" を追加する。
+enabled_environments = ["staging"]
+
+# 中央 infrastructure repository が管理している JIZI Portal OIDC など、
+# ログインと管理 API へのアクセスを許可する既存 Identity Provider の ID。
+allowed_identity_provider_ids = [
+  "00000000-0000-0000-0000-000000000000",
+]
+
+session_duration = "24h"

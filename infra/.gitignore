@@ -1,0 +1,17 @@
+.terraform/
+
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+
+backend.wasabi.hcl
+backend.wasabi.env
+backend.wasabi.tfbackend
+*.agekey
+keys.txt
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
