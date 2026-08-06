@@ -33,7 +33,7 @@ API token には対象 Account の次の権限が必要です。
 
 ## SOPS + age
 
-`backend.wasabi.sops.env` は、中央 infrastructure repository と同じ2つの age recipient（インフラ担当者 / GitHub Actions）で暗号化します。recipient は公開鍵なので `.sops.yaml` と暗号文へのコミットが前提です。age の秘密鍵は repository の外で管理してください。
+`backend.wasabi.sops.env` は、インフラ担当者と、この repository 専用の GitHub Actions age recipient の2つで暗号化します。recipient は公開鍵なので `.sops.yaml` と暗号文へのコミットが前提です。age の秘密鍵は repository の外で管理してください。
 
 SOPS 3.10 以上、age、Terraform を用意します。macOS で SOPS が既定で探す age identity は `$HOME/Library/Application Support/sops/age/keys.txt` です。別の場所を使う場合は `SOPS_AGE_KEY_FILE`、CI では secret store から作成した mode `0600` の一時 identity file または `SOPS_AGE_KEY_CMD` を使います。
 
@@ -75,7 +75,7 @@ Environment secrets は次の2つです。
 - `SOPS_AGE_KEY`: `.sops.yaml` の GitHub Actions recipient に対応する age private identity
 - `CLOUDFLARE_API_TOKEN`: 対象 Account 限定の Access 用 API token
 
-Wasabi credentials は暗号化済み `backend.wasabi.sops.env` から取得するため、Actions secrets へ重複登録しません。既存の別 repository の Actions secret は値を読み戻せないため、管理元の password manager などから age identity を取得してください。共通 CI identity の影響範囲を分離する場合は、この repository 専用の age keypairを作り、`.sops.yaml` と暗号文の recipient を更新します。
+Wasabi credentials は暗号化済み `backend.wasabi.sops.env` から取得するため、Actions secrets へ重複登録しません。Actions用identityはこのrepository専用で、秘密鍵はEnvironment `main`のsecretだけに登録します。GitHubからsecret値は読み戻せないため、交換が必要な場合はインフラ担当者鍵で暗号文を復号できる状態を維持したまま、新しいkeypairへローテーションします。
 
 Environment variables は次のとおりです。set 型の値は JSON 配列で指定します。
 
