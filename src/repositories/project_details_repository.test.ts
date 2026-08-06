@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test } from "vitest";
 import type { Project, ProjectDetails, ProjectId } from "../models";
 import { ProjectDetailsRepository } from "./project_details_repository";
-import { ProjectRepository } from "./project_repository";
+import { ProjectNotFoundError, ProjectRepository } from "./project_repository";
 
 const db = env.DB;
 
@@ -131,10 +131,116 @@ describe("save の上書き", () => {
   });
 });
 
+describe("menu の個別操作", () => {
+  test("menu だけを新規保存できる", async () => {
+    await projectRepository.create(project("s1"));
+    const menu = completeDetails().menu!;
+
+    await detailsRepository.saveMenu("s1", menu);
+
+    expect(await detailsRepository.get("s1")).toEqual({ menu });
+  });
+
+  test("menu を上書きしても additionalInfo を変更しない", async () => {
+    await projectRepository.create(project("s1"));
+    await detailsRepository.save("s1", completeDetails());
+    const menu = { items: [], description: "販売終了" };
+
+    await detailsRepository.saveMenu("s1", menu);
+
+    expect(await detailsRepository.get("s1")).toEqual({
+      additionalInfo: completeDetails().additionalInfo,
+      menu,
+    });
+  });
+
+  test("menu を削除しても additionalInfo を変更しない", async () => {
+    await projectRepository.create(project("s1"));
+    await detailsRepository.save("s1", completeDetails());
+
+    await detailsRepository.deleteMenu("s1");
+
+    expect(await detailsRepository.get("s1")).toEqual({
+      additionalInfo: completeDetails().additionalInfo,
+    });
+  });
+
+  test("詳細情報が未登録でも削除できる", async () => {
+    await projectRepository.create(project("s1"));
+
+    await detailsRepository.deleteMenu("s1");
+
+    expect(await detailsRepository.get("s1")).toBeNull();
+  });
+});
+
+describe("additionalInfo の個別操作", () => {
+  test("additionalInfo だけを新規保存できる", async () => {
+    await projectRepository.create(project("s1"));
+
+    await detailsRepository.saveAdditionalInfo("s1", "追加情報");
+
+    expect(await detailsRepository.get("s1")).toEqual({
+      additionalInfo: "追加情報",
+    });
+  });
+
+  test("additionalInfo を上書きしても menu を変更しない", async () => {
+    await projectRepository.create(project("s1"));
+    const details = completeDetails();
+    await detailsRepository.save("s1", details);
+
+    await detailsRepository.saveAdditionalInfo("s1", "変更後");
+
+    expect(await detailsRepository.get("s1")).toEqual({
+      additionalInfo: "変更後",
+      menu: details.menu,
+    });
+  });
+
+  test("additionalInfo を削除しても menu を変更しない", async () => {
+    await projectRepository.create(project("s1"));
+    const details = completeDetails();
+    await detailsRepository.save("s1", details);
+
+    await detailsRepository.deleteAdditionalInfo("s1");
+
+    expect(await detailsRepository.get("s1")).toEqual({ menu: details.menu });
+  });
+
+  test("詳細情報が未登録でも削除できる", async () => {
+    await projectRepository.create(project("s1"));
+
+    await detailsRepository.deleteAdditionalInfo("s1");
+
+    expect(await detailsRepository.get("s1")).toBeNull();
+  });
+});
+
 describe("projects との参照整合性", () => {
   test("存在しない企画には詳細情報を保存できない", async () => {
-    await expect(detailsRepository.save("unknown", {})).rejects.toThrow();
+    await expect(detailsRepository.save("unknown", {})).rejects.toThrow(
+      ProjectNotFoundError,
+    );
     expect(await detailsRepository.get("unknown")).toBeNull();
+  });
+
+  test.each([
+    [
+      "menu の保存",
+      () => detailsRepository.saveMenu("unknown", completeDetails().menu!),
+    ],
+    ["menu の削除", () => detailsRepository.deleteMenu("unknown")],
+    [
+      "additionalInfo の保存",
+      () => detailsRepository.saveAdditionalInfo("unknown", "追加情報"),
+    ],
+    [
+      "additionalInfo の削除",
+      () => detailsRepository.deleteAdditionalInfo("unknown"),
+    ],
+  ])("存在しない企画に対する%sは失敗する", async (_name, operation) => {
+    await expect(operation()).rejects.toThrow(ProjectNotFoundError);
   });
 
   test("企画を削除すると詳細情報も削除される", async () => {
