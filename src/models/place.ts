@@ -8,51 +8,95 @@ const namedPlaceEntries = {
   displayName: v.string(),
 };
 
-export const RoomSchema = v.object({
-  ...namedPlaceEntries,
-  type: v.literal("room"),
-  floor: v.string(),
-  alias: v.optional(v.string()),
-});
+// 判別子は v.literal ではなく単一要素の v.picklist を使う。v.literal は
+// JSON Schema の const になり、OpenAPI Generator が解釈できずに型情報ごと
+// 落とすため、構造が同じ stage と outdoor が同一モデルに潰れてしまう。
+const placeType = <const T extends string>(type: T) => v.picklist([type]);
+
+export const RoomSchema = v.pipe(
+  v.object({
+    ...namedPlaceEntries,
+    type: placeType("room"),
+    floor: v.string(),
+    alias: v.optional(v.string()),
+  }),
+  v.metadata({ ref: "Room" }),
+);
 export type Room = v.InferInput<typeof RoomSchema>;
 
-export const FoodStallSlotSchema = v.object({
-  ...namedPlaceEntries,
-  type: v.literal("food_stall_slot"),
-});
+export const FoodStallSlotSchema = v.pipe(
+  v.object({
+    ...namedPlaceEntries,
+    type: placeType("food_stall_slot"),
+  }),
+  v.metadata({ ref: "FoodStallSlot" }),
+);
 export type FoodStallSlot = v.InferInput<typeof FoodStallSlotSchema>;
 
-export const VenueSchema = v.variant("type", [
+export const BuildingSchema = v.pipe(
   v.object({
     ...namedPlaceEntries,
-    type: v.literal("building"),
+    type: placeType("building"),
     rooms: v.array(RoomSchema),
   }),
-  v.object({ ...namedPlaceEntries, type: v.literal("stage") }),
-  v.object({ ...namedPlaceEntries, type: v.literal("outdoor") }),
+  v.metadata({ ref: "Building" }),
+);
+export type Building = v.InferInput<typeof BuildingSchema>;
+
+export const StageSchema = v.pipe(
+  v.object({ ...namedPlaceEntries, type: placeType("stage") }),
+  v.metadata({ ref: "Stage" }),
+);
+export type Stage = v.InferInput<typeof StageSchema>;
+
+export const OutdoorSchema = v.pipe(
+  v.object({ ...namedPlaceEntries, type: placeType("outdoor") }),
+  v.metadata({ ref: "Outdoor" }),
+);
+export type Outdoor = v.InferInput<typeof OutdoorSchema>;
+
+export const FoodStallAreaSchema = v.pipe(
   v.object({
     ...namedPlaceEntries,
-    type: v.literal("food_stall_area"),
+    type: placeType("food_stall_area"),
     slots: v.array(FoodStallSlotSchema),
   }),
-]);
+  v.metadata({ ref: "FoodStallArea" }),
+);
+export type FoodStallArea = v.InferInput<typeof FoodStallAreaSchema>;
+
+export const VenueSchema = v.pipe(
+  v.variant("type", [
+    BuildingSchema,
+    StageSchema,
+    OutdoorSchema,
+    FoodStallAreaSchema,
+  ]),
+  v.metadata({ ref: "Venue" }),
+);
 export type Venue = v.InferInput<typeof VenueSchema>;
 
-export const DistrictSchema = v.object({
-  ...namedPlaceEntries,
-  type: v.literal("district"),
-  venues: v.array(VenueSchema),
-});
+export const DistrictSchema = v.pipe(
+  v.object({
+    ...namedPlaceEntries,
+    type: placeType("district"),
+    venues: v.array(VenueSchema),
+  }),
+  v.metadata({ ref: "District" }),
+);
 export type District = v.InferInput<typeof DistrictSchema>;
 
 export const DistrictsSchema = v.array(DistrictSchema);
 
-export const PlaceSchema = v.variant("type", [
-  DistrictSchema,
-  VenueSchema,
-  RoomSchema,
-  FoodStallSlotSchema,
-]);
+export const PlaceSchema = v.pipe(
+  v.variant("type", [
+    DistrictSchema,
+    VenueSchema,
+    RoomSchema,
+    FoodStallSlotSchema,
+  ]),
+  v.metadata({ ref: "Place" }),
+);
 export type Place = v.InferInput<typeof PlaceSchema>;
 
 export type PlaceType = Place["type"];
