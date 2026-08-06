@@ -233,6 +233,71 @@ describe("create の原子性", () => {
   });
 });
 
+describe("createMany", () => {
+  test("複数の企画をまとめて保存する", async () => {
+    const projects = [general(), foodStall(), laboratory(), stage()];
+
+    await repository.createMany(projects);
+
+    for (const project of projects) {
+      expect(await repository.get(project.id)).toEqual(project);
+    }
+  });
+
+  test("空配列では何も起きない", async () => {
+    await repository.createMany([]);
+
+    expect(await repository.list()).toEqual([]);
+  });
+
+  test("一件でも失敗したら一件も入らない", async () => {
+    await expect(
+      repository.createMany([
+        general(),
+        stage({ occasions: [invalidOccasion] }),
+      ]),
+    ).rejects.toThrow();
+
+    expect(await repository.list()).toEqual([]);
+    expect(await countRows("project_tags", "g1")).toBe(0);
+  });
+
+  test("既にある ID を含むと失敗し、既存の企画も壊れない", async () => {
+    const original = general();
+    await repository.create(original);
+
+    await expect(
+      repository.createMany([general({ projectName: "別の企画" }), stage()]),
+    ).rejects.toThrow();
+
+    expect(await repository.get("g1")).toEqual(original);
+    expect(await repository.get("s1")).toBeNull();
+  });
+
+  test("同じ ID を二件含むと失敗する", async () => {
+    await expect(
+      repository.createMany([general(), general({ projectName: "別の企画" })]),
+    ).rejects.toThrow();
+
+    expect(await repository.get("g1")).toBeNull();
+  });
+});
+
+describe("findExistingIds", () => {
+  test("登録済みの ID だけを返す", async () => {
+    await repository.create(general());
+    await repository.create(stage());
+
+    expect(
+      (await repository.findExistingIds(["g1", "s1", "x1"])).sort(),
+    ).toEqual(["g1", "s1"]);
+  });
+
+  test("空配列には空配列を返す", async () => {
+    expect(await repository.findExistingIds([])).toEqual([]);
+  });
+});
+
 describe("update", () => {
   test("基本情報を書き換える", async () => {
     await repository.create(general());

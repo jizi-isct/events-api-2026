@@ -174,22 +174,37 @@ export class ProjectRepository {
    * @throws 同じ id の企画が既にある場合。
    */
   async create(project: Project): Promise<void> {
-    await this.db.batch([
-      this.db
-        .prepare(INSERT_PROJECT)
-        .bind(
-          project.id,
-          project.type,
-          project.groupName,
-          project.projectName,
-          project.description,
-          Number(project.isChildFriendly),
-          Number(project.isRecommended),
-          isTourColumn(project),
-        ),
-      ...this.tagStatements(project),
-      ...this.occasionStatements(project),
-    ]);
+    await this.db.batch(this.insertStatements(project));
+  }
+
+  /**
+   * 複数の企画をまとめて新規登録する。
+   * batch は単一トランザクションなので、一件でも失敗すれば一件も入らない。
+   * @throws 既にある id が含まれる場合。
+   */
+  async createMany(projects: Project[]): Promise<void> {
+    if (projects.length === 0) {
+      return;
+    }
+
+    await this.db.batch(
+      projects.flatMap((project) => this.insertStatements(project)),
+    );
+  }
+
+  /** 渡した id のうち、既に登録されているものを返す。 */
+  async findExistingIds(projectIds: ProjectId[]): Promise<ProjectId[]> {
+    if (projectIds.length === 0) {
+      return [];
+    }
+
+    const placeholders = projectIds.map(() => "?").join(", ");
+    const result = await this.db
+      .prepare(`SELECT id FROM projects WHERE id IN (${placeholders})`)
+      .bind(...projectIds)
+      .all();
+
+    return (result.results as { id: string }[]).map((row) => row.id);
   }
 
   /** 企画を一件取得する。存在しなければ null を返す。 */
@@ -334,6 +349,26 @@ export class ProjectRepository {
     if (result.meta.changes === 0) {
       throw new ProjectNotFoundError(projectId);
     }
+  }
+
+  /** 企画一件を三つの表へ書き込む文。呼び出し側で一つの batch にまとめる。 */
+  private insertStatements(project: Project): D1PreparedStatement[] {
+    return [
+      this.db
+        .prepare(INSERT_PROJECT)
+        .bind(
+          project.id,
+          project.type,
+          project.groupName,
+          project.projectName,
+          project.description,
+          Number(project.isChildFriendly),
+          Number(project.isRecommended),
+          isTourColumn(project),
+        ),
+      ...this.tagStatements(project),
+      ...this.occasionStatements(project),
+    ];
   }
 
   private tagStatements(project: Project): D1PreparedStatement[] {
