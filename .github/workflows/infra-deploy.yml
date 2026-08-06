@@ -1,4 +1,4 @@
-name: Access infrastructure
+name: Infrastructure
 
 on:
   pull_request:
@@ -159,7 +159,7 @@ jobs:
           jq -e 'length > 0' >/dev/null <<<"$TF_VAR_allowed_identity_provider_ids" ||
             fail "ALLOWED_IDENTITY_PROVIDER_IDS must not be empty"
 
-          plan_file="${RUNNER_TEMP}/access-infrastructure.tfplan"
+          plan_file="${RUNNER_TEMP}/infrastructure.tfplan"
           cleanup() {
             rm -f -- "$plan_file"
           }

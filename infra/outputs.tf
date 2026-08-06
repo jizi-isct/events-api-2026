@@ -21,3 +21,16 @@ output "wrangler_access_vars" {
     }
   }
 }
+
+output "wrangler_r2_buckets" {
+  description = "wrangler.jsonc の環境ごとの r2_buckets 設定"
+  value = {
+    for environment, bucket in cloudflare_r2_bucket.icons :
+    environment => [
+      {
+        binding     = "ICON_BUCKET"
+        bucket_name = bucket.name
+      }
+    ]
+  }
+}

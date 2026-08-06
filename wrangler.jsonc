@@ -19,6 +19,13 @@
           "database_id": "b4e851c0-fb6b-48e8-be1b-c7805cbc0780",
         },
       ],
+      "r2_buckets": [
+        {
+          // Terraform の wrangler_r2_buckets.staging と同期する。
+          "binding": "ICON_BUCKET",
+          "bucket_name": "events-api-2026-icons-staging",
+        },
+      ],
       "images": {
         "binding": "IMAGES",
       },
@@ -42,6 +49,13 @@
           "binding": "DB",
           "database_name": "events-api-2026-prod",
           "database_id": "eedea329-37af-4baa-ba98-2a4c52bb9441",
+        },
+      ],
+      "r2_buckets": [
+        {
+          // Terraform の wrangler_r2_buckets.prod と同期する。
+          "binding": "ICON_BUCKET",
+          "bucket_name": "events-api-2026-icons-prod",
         },
       ],
       "images": {

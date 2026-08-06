@@ -19,9 +19,9 @@ jobs:
   deploy:
     name: Deploy ${{ github.event_name == 'release' && 'prod' || 'staging' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     environment:
-      # 既存の Cloudflare token / account ID を Access infrastructure と共有する。
+      # Cloudflare token / account ID を Infrastructure workflow と共有する。
       name: main
       url: ${{ github.event_name == 'release' && 'https://events26.koudaisai.jp' || 'https://events26-staging.koudaisai.jp' }}
     env:
@@ -50,6 +50,39 @@ jobs:
           bun run lint
           bunx tsc --noEmit
           bun run test
+
+      # mainへ初めてbucket定義とbindingを同時にmergeしたとき、並列起動した
+      # Terraform applyよりWorker deployが先行しないよう作成完了を待つ。
+      - name: Wait for icon bucket
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+
+          [[ -n "$CLOUDFLARE_API_TOKEN" ]] || {
+            printf 'error: GitHub Environment secret is missing: CLOUDFLARE_API_TOKEN\n' >&2
+            exit 1
+          }
+          [[ "$CLOUDFLARE_ACCOUNT_ID" =~ ^[0-9a-f]{32}$ ]] || {
+            printf 'error: CLOUDFLARE_ACCOUNT_ID must be a 32-character lowercase hexadecimal ID\n' >&2
+            exit 1
+          }
+
+          icon_bucket="events-api-2026-icons-${DEPLOY_ENVIRONMENT}"
+          for attempt in {1..120}; do
+            if bunx wrangler r2 bucket info "$icon_bucket" >/dev/null 2>&1; then
+              printf 'R2 bucket is ready: %s\n' "$icon_bucket"
+              exit 0
+            fi
+
+            if [[ "$attempt" -eq 120 ]]; then
+              printf 'error: R2 bucket was not created: %s\n' "$icon_bucket" >&2
+              exit 1
+            fi
+
+            sleep 5
+          done
 
       - name: Apply D1 migrations
         env:

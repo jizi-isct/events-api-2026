@@ -1,6 +1,7 @@
 # Infrastructure
 
-Cloudflare Access で staging / prod のホスト全体を保護する Terraform stack です。
+Cloudflare Access で staging / prod のホスト全体を保護し、企画アイコン用の
+R2 bucket を管理する Terraform stack です。
 
 - staging: `events26-staging.koudaisai.jp`
 - prod: `events26.koudaisai.jp`
@@ -32,6 +33,7 @@ API token には対象 Account の次の権限が必要です。
 
 - `Access: Apps and Policies Write`
 - `Access: Organizations, Identity Providers, and Groups Read`
+- `Workers R2 Storage Write`
 
 ## SOPS + age
 
@@ -75,7 +77,7 @@ deploy job は GitHub Environment `main` を参照します。workflow を main 
 Environment secrets は次の2つです。
 
 - `SOPS_AGE_KEY`: `.sops.yaml` の GitHub Actions recipient に対応する age private identity
-- `CLOUDFLARE_API_TOKEN`: 対象 Account 限定の Access 用 API token
+- `CLOUDFLARE_API_TOKEN`: 対象 Account 限定の Access / R2 用 API token
 
 Wasabi credentials は暗号化済み `backend.wasabi.sops.env` から取得するため、Actions secrets へ重複登録しません。Actions用identityはこのrepository専用で、秘密鍵はEnvironment `main`のsecretだけに登録します。GitHubからsecret値は読み戻せないため、交換が必要な場合はインフラ担当者鍵で暗号文を復号できる状態を維持したまま、新しいkeypairへローテーションします。
 
@@ -88,7 +90,7 @@ Environment variables は次のとおりです。set 型の値は JSON 配列で
 | `ALLOWED_IDENTITY_PROVIDER_IDS` | `["00000000-0000-0000-0000-000000000000"]` | yes                 |
 | `SESSION_DURATION`              | `24h`                                      | no                  |
 
-Environment variable の変更だけでは main push workflow は起動しません。値を変更した後は Actions 画面から `Access infrastructure` を main branch に対して手動実行します。手動実行で deploy できるのも main だけです。
+Environment variable の変更だけでは main push workflow は起動しません。値を変更した後は Actions 画面から `Infrastructure` を main branch に対して手動実行します。手動実行で deploy できるのも main だけです。
 
 main の ruleset では、少なくとも pull request 経由、review、`Validate Terraform` check の成功を必須にし、force push と branch deletion を禁止します。`infra/**`、`.sops.yaml`、`.github/workflows/**` は CODEOWNERS review の対象にすることを推奨します。
 
@@ -168,13 +170,32 @@ application の `policies` はこの stack が authoritative に管理します�
 
 ## Wrangler への反映
 
-apply 後に出力される値を `wrangler.jsonc` の `env.staging.vars` / `env.prod.vars` へ反映します。
+apply 後に出力される値を `wrangler.jsonc` の `env.staging` / `env.prod` へ反映します。
 
 ```sh
 ./tf.sh output -json wrangler_access_vars
+./tf.sh output -json wrangler_r2_buckets
 ```
 
 Terraform と Wrangler が同じ Worker 設定を同時に所有すると競合するため、この stack は Worker vars 自体を更新せず、必要な値だけを出力します。
+
+企画アイコンの bucket は staging / prod の2個を常に管理し、どちらも APAC の
+Standard storage class で作成します。`prevent_destroy` を設定しているため、bucket
+を廃止するときはコード変更だけでなく、データの退避と明示的な解除が必要です。
+Worker binding からのみアクセスするprivate bucketなので、公開domainやCORSは
+設定しません。
+
+同名bucketが既に存在する場合は、applyより先にstateへimportします。
+
+```sh
+./tf.sh import \
+  'cloudflare_r2_bucket.icons["staging"]' \
+  '<ACCOUNT_ID>/events-api-2026-icons-staging/default'
+
+./tf.sh import \
+  'cloudflare_r2_bucket.icons["prod"]' \
+  '<ACCOUNT_ID>/events-api-2026-icons-prod/default'
+```
 
 初回 rollout を段階的に行う場合は `enabled_environments` を使って一環境ずつ追加します。既定値と GitHub Environment `main` は staging / prod の両方です。root Access application には `prevent_destroy` があるため、一度追加した環境を集合から取り除くことはできません。
 
@@ -207,6 +228,7 @@ cloudflared access curl \
 - [Cloudflare Access application paths](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)
 - [Cloudflare Access from a CLI](https://developers.cloudflare.com/cloudflare-one/tutorials/cli/)
 - [Cloudflare Terraform Access resources](https://developers.cloudflare.com/api/terraform/resources/zero_trust/)
+- [Cloudflare Terraform R2 resource](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/r2_bucket)
 - [SOPS documentation](https://getsops.io/docs/)
 - [SOPS age identities](https://getsops.io/docs/usage/identities/age/)
 - [Terraform S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3)

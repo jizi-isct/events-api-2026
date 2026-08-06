@@ -8,8 +8,8 @@ declare global {
       DB: D1Database;
       /** 画像の形式・寸法判定に使うローカル Images binding。 */
       IMAGES: ImagesBinding;
-      /** IconRepository のテストに使うローカル R2 bucket。 */
-      TEST_ICON_BUCKET: R2Bucket;
+      /** 企画アイコンの原本を保存するローカル R2 bucket。 */
+      ICON_BUCKET: R2Bucket;
       /** vitest.config.ts で注入される、migrations/ の内容。 */
       TEST_MIGRATIONS: D1Migration[];
       /** vitest.config.ts で注入される、wrangler.jsonc の中身。 */

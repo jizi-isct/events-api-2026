@@ -23,7 +23,7 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       miniflare: {
-        r2Buckets: ["TEST_ICON_BUCKET"],
+        r2Buckets: ["ICON_BUCKET"],
         bindings: {
           TEST_MIGRATIONS: migrations,
           TEST_WRANGLER_CONFIG: wranglerConfig,

@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test } from "vitest";
 import { IconRepository } from "./icon_repository";
 
-const bucket = env.TEST_ICON_BUCKET;
+const bucket = env.ICON_BUCKET;
 
 let repository: IconRepository;
 

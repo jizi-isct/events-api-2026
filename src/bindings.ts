@@ -6,6 +6,8 @@
  */
 export type Bindings = {
   DB: D1Database;
+  /** 企画アイコンの原本を保存する R2 bucket。 */
+  ICON_BUCKET: R2Bucket;
   /** 画像の形式・寸法判定と最適化に使う Cloudflare Images binding。 */
   IMAGES: ImagesBinding;
   /** Access チームのドメイン(例: https://example.cloudflareaccess.com)。 */
