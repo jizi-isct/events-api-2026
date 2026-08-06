@@ -19,6 +19,9 @@
           "database_id": "b4e851c0-fb6b-48e8-be1b-c7805cbc0780",
         },
       ],
+      "images": {
+        "binding": "IMAGES",
+      },
       "vars": {
         // Terraform の wrangler_access_vars.staging と同期する。
         "ACCESS_TEAM_DOMAIN": "https://jizi-isct.cloudflareaccess.com",
@@ -41,6 +44,9 @@
           "database_id": "eedea329-37af-4baa-ba98-2a4c52bb9441",
         },
       ],
+      "images": {
+        "binding": "IMAGES",
+      },
       "vars": {
         // Terraform の wrangler_access_vars.prod と同期する。
         "ACCESS_TEAM_DOMAIN": "https://jizi-isct.cloudflareaccess.com",
