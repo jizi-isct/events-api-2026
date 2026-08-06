@@ -3,7 +3,9 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --env staging",
-    "deploy": "wrangler deploy --minify",
+    "deploy": "wrangler deploy --env staging --minify",
+    "deploy:staging": "wrangler deploy --env staging --minify",
+    "deploy:prod": "wrangler deploy --env prod --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "test": "vitest run",
     "lint": "eslint .",
