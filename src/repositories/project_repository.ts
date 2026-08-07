@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import {
+  type Category,
   type Project,
   type ProjectId,
   type ProjectType,
@@ -22,6 +23,7 @@ interface ProjectRow {
   description: string;
   is_child_friendly: number;
   is_recommended: number;
+  category: Category | null;
   is_tour: number | null;
 }
 
@@ -44,7 +46,7 @@ interface OccasionRow {
 
 const SELECT_PROJECT_COLUMNS = `
   id, type, group_name, project_name, description,
-  is_child_friendly, is_recommended, is_tour
+  is_child_friendly, is_recommended, category, is_tour
 `;
 
 const SELECT_TAG_COLUMNS = `project_id, tag, tag2`;
@@ -58,14 +60,14 @@ const SELECT_OCCASION_COLUMNS = `
 const INSERT_PROJECT = `
   INSERT INTO projects (
     id, type, group_name, project_name, description,
-    is_child_friendly, is_recommended, is_tour
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    is_child_friendly, is_recommended, category, is_tour
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 const UPDATE_PROJECT = `
   UPDATE projects SET
     type = ?, group_name = ?, project_name = ?, description = ?,
-    is_child_friendly = ?, is_recommended = ?, is_tour = ?
+    is_child_friendly = ?, is_recommended = ?, category = ?, is_tour = ?
   WHERE id = ?
 `;
 
@@ -122,6 +124,8 @@ const toProject = (
     description: row.description,
     isChildFriendly: row.is_child_friendly === 1,
     isRecommended: row.is_recommended === 1,
+    // 任意の項目。DB の NULL はキーごと落として undefined に揃える。
+    category: row.category ?? undefined,
     occasions: occasionRows.map((occasion) => ({
       // place は任意。DB の NULL はキーごと落として undefined に揃える。
       place: occasion.place_id ?? undefined,
@@ -300,6 +304,7 @@ export class ProjectRepository {
           project.description,
           Number(project.isChildFriendly),
           Number(project.isRecommended),
+          project.category ?? null,
           isTourColumn(project),
           project.id,
         ),
@@ -365,6 +370,7 @@ export class ProjectRepository {
           project.description,
           Number(project.isChildFriendly),
           Number(project.isRecommended),
+          project.category ?? null,
           isTourColumn(project),
         ),
       ...this.tagStatements(project),

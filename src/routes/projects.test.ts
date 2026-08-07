@@ -287,6 +287,40 @@ describe("GET /v1/projects/:projectId/icon", () => {
 });
 
 describe("OpenAPI", () => {
+  test("documents the category as an optional enum", async () => {
+    const res = await app.request("/openapi.json", undefined, env);
+    const document = (await res.json()) as {
+      components: {
+        schemas: Record<
+          string,
+          {
+            enum?: string[];
+            properties?: Record<string, { $ref?: string }>;
+            required?: string[];
+          }
+        >;
+      };
+    };
+
+    expect(document.components.schemas.Category?.enum).toEqual([
+      "hearty",
+      "street_food",
+      "sweets",
+      "performance",
+      "play",
+      "cafe",
+      "laboratory",
+      "display",
+    ]);
+
+    // 生成されるクライアントで任意の項目になるよう、required に入れない。
+    const general = document.components.schemas.GeneralProject;
+    expect(general?.properties?.category?.$ref).toBe(
+      "#/components/schemas/Category",
+    );
+    expect(general?.required).not.toContain("category");
+  });
+
   test("documents the projects routes", async () => {
     const res = await app.request("/openapi.json", undefined, env);
     const document = (await res.json()) as {
