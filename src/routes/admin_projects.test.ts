@@ -888,6 +888,38 @@ describe("Discord への通知", () => {
     );
   });
 
+  test("更新の通知に変更点を載せる", async () => {
+    await repository.create(general);
+
+    const res = await notifying(`/admin/v1/projects/${general.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ ...general, projectName: "新しい企画名" }),
+    });
+
+    expect(res.status).toBe(200);
+    const embed = (webhookPayloads[0] as { embeds: { description?: string }[] })
+      .embeds[0];
+    expect(embed?.description).toBe(
+      `- **企画名**: ${general.projectName} → 新しい企画名`,
+    );
+  });
+
+  test("説明の更新の通知に変更点を載せる", async () => {
+    await repository.create(general);
+
+    const res = await notifying(
+      `/admin/v1/projects/${general.id}/description`,
+      { method: "PATCH", body: JSON.stringify({ description: "新しい説明" }) },
+    );
+
+    expect(res.status).toBe(200);
+    const embed = (webhookPayloads[0] as { embeds: { description?: string }[] })
+      .embeds[0];
+    expect(embed?.description).toBe(
+      `- **説明**: ${general.description} → 新しい説明`,
+    );
+  });
+
   test("失敗した操作は通知しない", async () => {
     const res = await notifying("/admin/v1/projects/unknown", {
       method: "DELETE",

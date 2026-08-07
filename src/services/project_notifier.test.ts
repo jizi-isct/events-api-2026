@@ -29,7 +29,113 @@ const fakeDiscord = () => {
 };
 
 describe("notify", () => {
-  test("企画つきの通知に ID・企画名・団体名を載せる", async () => {
+  test("企画の全項目を載せる", async () => {
+    const { port, sent } = fakeDiscord();
+
+    await new ProjectNotifier(port, BASE_URL).notify({
+      type: "created",
+      projectId: project.id,
+      project: {
+        ...project,
+        occasions: [
+          {
+            place: "south.s3.s3-206",
+            timeRange: {
+              start: { date: 1, hour: 10, minute: 0 },
+              end: { date: 1, hour: 16, minute: 30 },
+            },
+          },
+        ],
+      },
+    });
+
+    const embed = sent[0]?.embeds?.[0];
+    expect(embed?.title).toBe("企画を登録しました");
+    expect(embed?.fields).toEqual([
+      { name: "企画ID", value: "g1", inline: true },
+      { name: "種別", value: "一般", inline: true },
+      { name: "企画名", value: "テスト企画", inline: true },
+      { name: "団体名", value: "テスト団体", inline: true },
+      { name: "子ども向け", value: "はい", inline: true },
+      { name: "おすすめ", value: "いいえ", inline: true },
+      { name: "タグ", value: "display", inline: false },
+      {
+        name: "開催予定",
+        value: "・south.s3.s3-206 1日目 10:00〜1日目 16:30",
+        inline: false,
+      },
+      { name: "説明", value: "説明", inline: false },
+    ]);
+  });
+
+  test("種別ごとの項目を出し分ける", async () => {
+    const { port, sent } = fakeDiscord();
+
+    await new ProjectNotifier(port, BASE_URL).notify({
+      type: "created",
+      projectId: "l1",
+      project: {
+        id: "l1",
+        type: "laboratory",
+        groupName: "研究室",
+        projectName: "研究室公開",
+        description: "",
+        isChildFriendly: false,
+        isRecommended: true,
+        occasions: [],
+        isTour: true,
+      },
+    });
+
+    const fields = sent[0]?.embeds?.[0]?.fields;
+    expect(fields).toContainEqual({
+      name: "ツアー",
+      value: "はい",
+      inline: true,
+    });
+    // 研究室企画はタグを持たない。
+    expect(fields?.some((field) => field.name === "タグ")).toBe(false);
+    expect(fields).toContainEqual({
+      name: "開催予定",
+      value: "なし",
+      inline: false,
+    });
+    expect(fields).toContainEqual({
+      name: "説明",
+      value: "なし",
+      inline: false,
+    });
+  });
+
+  test("変更前が渡されたら、変わった項目だけを先頭にまとめる", async () => {
+    const { port, sent } = fakeDiscord();
+
+    await new ProjectNotifier(port, BASE_URL).notify({
+      type: "updated",
+      projectId: project.id,
+      project: { ...project, projectName: "新しい企画名", isRecommended: true },
+      previous: project,
+    });
+
+    expect(sent[0]?.embeds?.[0]?.description).toBe(
+      "- **企画名**: テスト企画 → 新しい企画名\n- **おすすめ**: いいえ → はい",
+    );
+  });
+
+  test("値が変わっていなければ変更なしと出す", async () => {
+    const { port, sent } = fakeDiscord();
+
+    await new ProjectNotifier(port, BASE_URL).notify({
+      type: "updated",
+      projectId: project.id,
+      project,
+      previous: project,
+    });
+
+    expect(sent[0]?.embeds?.[0]?.description).toBe("変更なし");
+  });
+
+  test("変更前が無ければ差分を出さない", async () => {
     const { port, sent } = fakeDiscord();
 
     await new ProjectNotifier(port, BASE_URL).notify({
@@ -38,13 +144,7 @@ describe("notify", () => {
       project,
     });
 
-    const embed = sent[0]?.embeds?.[0];
-    expect(embed?.title).toBe("企画を登録しました");
-    expect(embed?.fields).toEqual([
-      { name: "企画ID", value: "g1", inline: true },
-      { name: "企画名", value: "テスト企画", inline: true },
-      { name: "団体名", value: "テスト団体", inline: true },
-    ]);
+    expect(sent[0]?.embeds?.[0]?.description).toBeUndefined();
   });
 
   test("説明の更新では説明本文も載せる", async () => {
