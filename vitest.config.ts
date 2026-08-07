@@ -33,6 +33,9 @@ export default defineConfig({
           // vitest-pool-workers は .dev.vars も読むため、開発者が
           // 迂回フラグを立てていると認証のテストが素通りしてしまう。打ち消す。
           ACCESS_DEV_BYPASS: "",
+          // 同様に、開発者の webhook へテストの通知が飛ばないよう空にする。
+          // 通知のテストは binding を差し替えて行う。
+          DISCORD_WEBHOOK_URL: "",
         },
       },
       wrangler: {

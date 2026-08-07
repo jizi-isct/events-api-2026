@@ -19,4 +19,9 @@ export type Bindings = {
    * .dev.vars でのみ設定し、デプロイ先には存在しない。
    */
   ACCESS_DEV_BYPASS?: string;
+  /**
+   * 企画情報の変更を流す Discord webhook の URL。トークンを含むので
+   * `wrangler secret put` で設定する。未設定なら通知しない。
+   */
+  DISCORD_WEBHOOK_URL?: string;
 };

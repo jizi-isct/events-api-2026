@@ -34,6 +34,21 @@ bun run deploy:staging
 bun run deploy:prod
 ```
 
+## Discord 通知
+
+`/admin` 配下の企画情報の変更(登録・更新・説明更新・アイコン更新・アイコン削除・削除)を
+Discord の incoming webhook へ通知します。通知はベストエフォートで、送信に失敗しても API の
+応答は変わらず `console.warn` がログに残るだけです。
+
+webhook URL はトークンを含むため secret として環境ごとに設定します。
+
+```sh
+bunx wrangler secret put DISCORD_WEBHOOK_URL --env staging
+bunx wrangler secret put DISCORD_WEBHOOK_URL --env prod
+```
+
+未設定の環境では通知しません。ローカルでは `.dev.vars` に書けば有効になります。
+
 ## 型生成
 
 [For generating/synchronizing types based on your Worker configuration run](https://developers.cloudflare.com/workers/wrangler/commands/#types):

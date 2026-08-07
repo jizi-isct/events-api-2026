@@ -32,6 +32,11 @@ const publicJwk: JWK = {
 
 const realFetch = globalThis.fetch;
 
+// 通知先の webhook もスタブし、送信内容と応答をテストから操作する。
+const WEBHOOK_URL = "https://discord.example/api/webhooks/1/token";
+const webhookPayloads: unknown[] = [];
+let webhookStatus = 204;
+
 vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
   const url =
     typeof input === "string"
@@ -42,6 +47,13 @@ vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
 
   if (url.startsWith(`${TEAM_DOMAIN}/cdn-cgi/access/certs`)) {
     return Response.json({ keys: [publicJwk] });
+  }
+
+  if (url === WEBHOOK_URL) {
+    webhookPayloads.push(JSON.parse(init?.body as string));
+    return new Response(webhookStatus === 204 ? null : "webhook is gone", {
+      status: webhookStatus,
+    });
   }
 
   return realFetch(input, init);
@@ -71,6 +83,7 @@ const signToken = ({
 const authorized = async (
   path: string,
   init: RequestInit = {},
+  bindings: Parameters<typeof app.request>[2] = env,
 ): Promise<Response> =>
   app.request(
     path,
@@ -82,8 +95,12 @@ const authorized = async (
         ...init.headers,
       },
     },
-    env,
+    bindings,
   );
+
+/** 通知先が設定された状態でリクエストする。 */
+const notifying = (path: string, init: RequestInit = {}): Promise<Response> =>
+  authorized(path, init, { ...env, DISCORD_WEBHOOK_URL: WEBHOOK_URL });
 
 const general: Project = {
   id: "g1",
@@ -106,6 +123,8 @@ const general: Project = {
 };
 
 beforeEach(async () => {
+  webhookPayloads.length = 0;
+  webhookStatus = 204;
   await db.prepare(`DELETE FROM projects`).run();
 
   let listed = await iconBucket.list();
@@ -766,5 +785,115 @@ describe("OpenAPI", () => {
       "204",
       "401",
     ]);
+  });
+});
+
+describe("Discord への通知", () => {
+  test("企画の登録を通知する", async () => {
+    const res = await notifying("/admin/v1/projects", {
+      method: "POST",
+      body: JSON.stringify(general),
+    });
+
+    expect(res.status).toBe(201);
+    expect(webhookPayloads).toHaveLength(1);
+    const embed = (webhookPayloads[0] as { embeds: { title: string }[] })
+      .embeds[0];
+    expect(embed?.title).toBe("企画を登録しました");
+  });
+
+  test("一括登録は一通にまとめて通知する", async () => {
+    const res = await notifying("/admin/v1/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify([general, { ...general, id: "g2" }]),
+    });
+
+    expect(res.status).toBe(201);
+    expect(webhookPayloads).toHaveLength(1);
+    const embed = (
+      webhookPayloads[0] as {
+        embeds: { title: string; fields: { name: string; value: string }[] }[];
+      }
+    ).embeds[0];
+    expect(embed?.title).toBe("企画を一括登録しました");
+    expect(embed?.fields).toContainEqual({
+      name: "件数",
+      value: "2",
+      inline: true,
+    });
+  });
+
+  test("企画の削除を、消える前の企画名つきで通知する", async () => {
+    await repository.create(general);
+
+    const res = await notifying(`/admin/v1/projects/${general.id}`, {
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(204);
+    const embed = (
+      webhookPayloads[0] as {
+        embeds: { title: string; fields: { value: string }[] }[];
+      }
+    ).embeds[0];
+    expect(embed?.title).toBe("企画を削除しました");
+    expect(embed?.fields.map((field) => field.value)).toContain(
+      general.projectName,
+    );
+  });
+
+  test("アイコンの更新と削除を通知する", async () => {
+    await repository.create(general);
+
+    await notifying(`/admin/v1/projects/${general.id}/icon`, {
+      method: "PUT",
+      body: SQUARE_PNG,
+      headers: { "Content-Type": "image/png" },
+    });
+    await notifying(`/admin/v1/projects/${general.id}/icon`, {
+      method: "DELETE",
+    });
+
+    expect(
+      webhookPayloads.map(
+        (payload) =>
+          (payload as { embeds: { title: string }[] }).embeds[0].title,
+      ),
+    ).toEqual(["企画アイコンを更新しました", "企画アイコンを削除しました"]);
+  });
+
+  test("失敗した操作は通知しない", async () => {
+    const res = await notifying("/admin/v1/projects/unknown", {
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(404);
+    expect(webhookPayloads).toHaveLength(0);
+  });
+
+  test("webhook が未設定なら通知しない", async () => {
+    const res = await authorized("/admin/v1/projects", {
+      method: "POST",
+      body: JSON.stringify(general),
+    });
+
+    expect(res.status).toBe(201);
+    expect(webhookPayloads).toHaveLength(0);
+  });
+
+  test("通知に失敗しても操作は成功し、warn を残す", async () => {
+    webhookStatus = 404;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const res = await notifying("/admin/v1/projects", {
+      method: "POST",
+      body: JSON.stringify(general),
+    });
+
+    expect(res.status).toBe(201);
+    expect(await repository.get(general.id)).not.toBeNull();
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn.mock.calls[0]?.[0]).toContain("Failed to notify Discord");
+    warn.mockRestore();
   });
 });
