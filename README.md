@@ -36,9 +36,16 @@ bun run deploy:prod
 
 ## Discord 通知
 
-`/admin` 配下の企画情報の変更(登録・更新・説明更新・アイコン更新・アイコン削除・削除)を
+`/admin` 配下の企画情報の変更(登録・一括登録・更新・説明更新・アイコン更新・アイコン削除・削除)を
 Discord の incoming webhook へ通知します。通知はベストエフォートで、送信に失敗しても API の
 応答は変わらず `console.warn` がログに残るだけです。
+
+通知は「団体ID 団体名」を名乗り、その企画のアイコンをアイコンとして表示します。アイコンの
+更新では更新後の画像を embed にも添えます。いずれの画像も `/cdn-cgi/image/` の画像最適化を
+通した URL で参照するため、対象 zone で Image Transformations が有効になっている必要が
+あります。`/cdn-cgi/image` は Access を bypass する application として Terraform 側で
+公開しています(変換元の `/v1` のアイコンが元から公開されているため、変換後だけを塞いでも
+守るものがありません)。
 
 webhook URL はトークンを含むため secret として環境ごとに設定します。
 

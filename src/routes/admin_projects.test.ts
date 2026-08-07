@@ -862,6 +862,32 @@ describe("Discord への通知", () => {
     ).toEqual(["企画アイコンを更新しました", "企画アイコンを削除しました"]);
   });
 
+  test("アイコンの更新では最適化した画像を embed に添える", async () => {
+    await repository.create(general);
+
+    const res = await notifying(`/admin/v1/projects/${general.id}/icon`, {
+      method: "PUT",
+      body: SQUARE_PNG,
+      headers: { "Content-Type": "image/png" },
+    });
+
+    expect(res.status).toBe(204);
+    const payload = webhookPayloads[0] as {
+      username: string;
+      avatar_url: string;
+      embeds: { image?: { url: string } }[];
+    };
+    expect(payload.username).toBe(`${general.id} ${general.groupName}`);
+    expect(payload.embeds[0]?.image?.url).toMatch(
+      new RegExp(
+        `^http://localhost/cdn-cgi/image/width=512,format=auto/v1/projects/${general.id}/icon\\?v=\\d+$`,
+      ),
+    );
+    expect(payload.avatar_url).toContain(
+      "/cdn-cgi/image/width=128,format=auto/",
+    );
+  });
+
   test("失敗した操作は通知しない", async () => {
     const res = await notifying("/admin/v1/projects/unknown", {
       method: "DELETE",

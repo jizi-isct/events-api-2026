@@ -62,19 +62,24 @@ const notify = async (
     return;
   }
 
-  const sending = new ProjectNotifier(new DiscordService(webhookUrl))
-    .notify(event)
-    .catch((error: unknown) => {
-      const target =
-        event.type === "bulk_created"
-          ? `${String(event.projects.length)} projects`
-          : event.projectId;
+  // アイコンの URL は公開 API と同じオリジンから引く。admin も公開ルートも
+  // 同じ custom domain に載っているので、受け取ったリクエストの origin でよい。
+  const notifier = new ProjectNotifier(
+    new DiscordService(webhookUrl),
+    new URL(c.req.url).origin,
+  );
 
-      console.warn(
-        `Failed to notify Discord of project ${event.type} (${target})`,
-        error,
-      );
-    });
+  const sending = notifier.notify(event).catch((error: unknown) => {
+    const target =
+      event.type === "bulk_created"
+        ? `${String(event.projects.length)} projects`
+        : event.projectId;
+
+    console.warn(
+      `Failed to notify Discord of project ${event.type} (${target})`,
+      error,
+    );
+  });
 
   try {
     // 応答を通知の完了まで待たせない。
