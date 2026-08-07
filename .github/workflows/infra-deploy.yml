@@ -123,8 +123,7 @@ jobs:
           TF_VAR_allowed_identity_provider_ids: ${{ vars.ALLOWED_IDENTITY_PROVIDER_IDS }}
           TF_VAR_session_duration: ${{ vars.SESSION_DURATION || '24h' }}
           TF_VAR_service_token_duration: ${{ vars.SERVICE_TOKEN_DURATION || '8760h' }}
-          # 数値変数は HCL literal として解釈されるため、未設定時は null を渡す。
-          TF_VAR_service_token_secret_version: ${{ vars.SERVICE_TOKEN_SECRET_VERSION || 'null' }}
+          TF_VAR_service_token_secret_version: ${{ vars.SERVICE_TOKEN_SECRET_VERSION }}
         run: |
           set -euo pipefail
 
@@ -144,6 +143,15 @@ jobs:
               >/dev/null <<<"${!name}" ||
               fail "${name} must be a JSON array of strings"
           }
+
+          # TF_VAR_ で渡す数値変数は HCL ではなく文字列として解釈されるため、
+          # 空文字も "null" も number に変換できず plan が落ちる。未指定のときは
+          # 環境変数ごと外し、variable 側の default (null) に任せる。
+          if [[ -z "${TF_VAR_service_token_secret_version:-}" ]]; then
+            unset TF_VAR_service_token_secret_version
+          elif [[ ! "$TF_VAR_service_token_secret_version" =~ ^[1-9][0-9]*$ ]]; then
+            fail "SERVICE_TOKEN_SECRET_VERSION must be a positive integer"
+          fi
 
           require_value SOPS_AGE_KEY
           require_value CLOUDFLARE_API_TOKEN
