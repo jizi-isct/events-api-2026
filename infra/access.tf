@@ -25,6 +25,13 @@ locals {
       name = "OpenAPI"
       path = "openapi.json"
     }
+    # Discord の通知に載せる企画アイコンは、cdn-cgi の画像最適化を通した URL で
+    # 参照する。変換元は既に公開している /v1 のアイコンなので、変換後だけを
+    # 塞いでも守るものが無い。Discord からも読めるよう bypass する。
+    image_resizing = {
+      name = "image resizing"
+      path = "cdn-cgi/image"
+    }
   }
 
   public_applications = {
