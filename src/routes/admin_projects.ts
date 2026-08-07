@@ -241,6 +241,8 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       }
 
       const repository = new ProjectRepository(c.env.DB);
+      // 何が変わったかを通知に出すため、置き換える前の内容を読んでおく。
+      const previous = await repository.get(projectId);
 
       try {
         await repository.update(project);
@@ -251,7 +253,12 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await notify(c, { type: "updated", projectId, project });
+      await notify(c, {
+        type: "updated",
+        projectId,
+        project,
+        previous: previous ?? undefined,
+      });
 
       return c.json(project);
     },
@@ -286,6 +293,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       const { projectId } = c.req.valid("param");
       const { description } = c.req.valid("json");
       const repository = new ProjectRepository(c.env.DB);
+      const previous = await repository.get(projectId);
 
       try {
         await repository.updateDescription(projectId, description);
@@ -303,7 +311,12 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         return c.json({ message: `Unknown project ID: ${projectId}` }, 404);
       }
 
-      await notify(c, { type: "description_updated", projectId, project });
+      await notify(c, {
+        type: "description_updated",
+        projectId,
+        project,
+        previous: previous ?? undefined,
+      });
 
       return c.json(project);
     },
