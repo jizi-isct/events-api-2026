@@ -144,6 +144,14 @@ describe("create と get のラウンドトリップ", () => {
     expect(await repository.get(project.id)).toEqual(project);
   });
 
+  test("場所未定の occasion を保存して読み戻せる", async () => {
+    // place は任意。undefined のまま bind すると D1 が投げるため null に寄せている。
+    const project = general({ occasions: [occasionAt(undefined, 10)] });
+    await repository.create(project);
+
+    expect(await repository.get(project.id)).toEqual(project);
+  });
+
   test("isTour が false の研究室企画を保存できる", async () => {
     const project = laboratory({ isTour: false });
     await repository.create(project);
@@ -233,6 +241,71 @@ describe("create の原子性", () => {
   });
 });
 
+describe("createMany", () => {
+  test("複数の企画をまとめて保存する", async () => {
+    const projects = [general(), foodStall(), laboratory(), stage()];
+
+    await repository.createMany(projects);
+
+    for (const project of projects) {
+      expect(await repository.get(project.id)).toEqual(project);
+    }
+  });
+
+  test("空配列では何も起きない", async () => {
+    await repository.createMany([]);
+
+    expect(await repository.list()).toEqual([]);
+  });
+
+  test("一件でも失敗したら一件も入らない", async () => {
+    await expect(
+      repository.createMany([
+        general(),
+        stage({ occasions: [invalidOccasion] }),
+      ]),
+    ).rejects.toThrow();
+
+    expect(await repository.list()).toEqual([]);
+    expect(await countRows("project_tags", "g1")).toBe(0);
+  });
+
+  test("既にある ID を含むと失敗し、既存の企画も壊れない", async () => {
+    const original = general();
+    await repository.create(original);
+
+    await expect(
+      repository.createMany([general({ projectName: "別の企画" }), stage()]),
+    ).rejects.toThrow();
+
+    expect(await repository.get("g1")).toEqual(original);
+    expect(await repository.get("s1")).toBeNull();
+  });
+
+  test("同じ ID を二件含むと失敗する", async () => {
+    await expect(
+      repository.createMany([general(), general({ projectName: "別の企画" })]),
+    ).rejects.toThrow();
+
+    expect(await repository.get("g1")).toBeNull();
+  });
+});
+
+describe("findExistingIds", () => {
+  test("登録済みの ID だけを返す", async () => {
+    await repository.create(general());
+    await repository.create(stage());
+
+    expect(
+      (await repository.findExistingIds(["g1", "s1", "x1"])).sort(),
+    ).toEqual(["g1", "s1"]);
+  });
+
+  test("空配列には空配列を返す", async () => {
+    expect(await repository.findExistingIds([])).toEqual([]);
+  });
+});
+
 describe("update", () => {
   test("基本情報を書き換える", async () => {
     await repository.create(general());
@@ -255,6 +328,15 @@ describe("update", () => {
     expect(await repository.get("g1")).toEqual(updated);
     expect(await countRows("project_tags", "g1")).toBe(1);
     expect(await countRows("project_occasions", "g1")).toBe(1);
+  });
+
+  test("occasion の場所を未定に戻せる", async () => {
+    await repository.create(general());
+    const updated = general({ occasions: [occasionAt(undefined, 14)] });
+
+    await repository.update(updated);
+
+    expect(await repository.get("g1")).toEqual(updated);
   });
 
   test("タグと occasion を空にできる", async () => {
@@ -288,6 +370,44 @@ describe("update", () => {
       ),
     ).rejects.toThrow();
     expect(await repository.get("g1")).toEqual(original);
+  });
+});
+
+describe("updateDescription", () => {
+  test("説明だけを書き換える", async () => {
+    const original = general();
+    await repository.create(original);
+
+    await repository.updateDescription("g1", "新しい説明");
+
+    expect(await repository.get("g1")).toEqual(
+      general({ description: "新しい説明" }),
+    );
+  });
+
+  test("タグと occasion は保たれる", async () => {
+    await repository.create(general());
+
+    await repository.updateDescription("g1", "新しい説明");
+
+    expect(await countRows("project_tags", "g1")).toBe(2);
+    expect(await countRows("project_occasions", "g1")).toBe(1);
+  });
+
+  test("他の企画には影響しない", async () => {
+    const other = foodStall();
+    await repository.create(general());
+    await repository.create(other);
+
+    await repository.updateDescription("g1", "新しい説明");
+
+    expect(await repository.get("f1")).toEqual(other);
+  });
+
+  test("存在しない企画は ProjectNotFoundError を投げる", async () => {
+    await expect(
+      repository.updateDescription("g1", "新しい説明"),
+    ).rejects.toThrow(ProjectNotFoundError);
   });
 });
 

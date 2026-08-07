@@ -33,7 +33,7 @@ interface TagRow {
 
 interface OccasionRow {
   project_id: string;
-  place_id: string;
+  place_id: string | null;
   start_date: number;
   start_hour: number;
   start_minute: number;
@@ -123,7 +123,8 @@ const toProject = (
     isChildFriendly: row.is_child_friendly === 1,
     isRecommended: row.is_recommended === 1,
     occasions: occasionRows.map((occasion) => ({
-      place: occasion.place_id,
+      // place は任意。DB の NULL はキーごと落として undefined に揃える。
+      place: occasion.place_id ?? undefined,
       timeRange: {
         start: {
           date: occasion.start_date,
@@ -174,22 +175,37 @@ export class ProjectRepository {
    * @throws 同じ id の企画が既にある場合。
    */
   async create(project: Project): Promise<void> {
-    await this.db.batch([
-      this.db
-        .prepare(INSERT_PROJECT)
-        .bind(
-          project.id,
-          project.type,
-          project.groupName,
-          project.projectName,
-          project.description,
-          Number(project.isChildFriendly),
-          Number(project.isRecommended),
-          isTourColumn(project),
-        ),
-      ...this.tagStatements(project),
-      ...this.occasionStatements(project),
-    ]);
+    await this.db.batch(this.insertStatements(project));
+  }
+
+  /**
+   * 複数の企画をまとめて新規登録する。
+   * batch は単一トランザクションなので、一件でも失敗すれば一件も入らない。
+   * @throws 既にある id が含まれる場合。
+   */
+  async createMany(projects: Project[]): Promise<void> {
+    if (projects.length === 0) {
+      return;
+    }
+
+    await this.db.batch(
+      projects.flatMap((project) => this.insertStatements(project)),
+    );
+  }
+
+  /** 渡した id のうち、既に登録されているものを返す。 */
+  async findExistingIds(projectIds: ProjectId[]): Promise<ProjectId[]> {
+    if (projectIds.length === 0) {
+      return [];
+    }
+
+    const placeholders = projectIds.map(() => "?").join(", ");
+    const result = await this.db
+      .prepare(`SELECT id FROM projects WHERE id IN (${placeholders})`)
+      .bind(...projectIds)
+      .all();
+
+    return (result.results as { id: string }[]).map((row) => row.id);
   }
 
   /** 企画を一件取得する。存在しなければ null を返す。 */
@@ -304,6 +320,24 @@ export class ProjectRepository {
   }
 
   /**
+   * 企画の説明だけを書き換える。他の列・タグ・occasion には触れない。
+   * @throws {ProjectNotFoundError} 対象の企画が存在しない場合。
+   */
+  async updateDescription(
+    projectId: ProjectId,
+    description: string,
+  ): Promise<void> {
+    const result = await this.db
+      .prepare(`UPDATE projects SET description = ? WHERE id = ?`)
+      .bind(description, projectId)
+      .run();
+
+    if (result.meta.changes === 0) {
+      throw new ProjectNotFoundError(projectId);
+    }
+  }
+
+  /**
    * 企画を削除する。タグと occasion は ON DELETE CASCADE で一緒に消える。
    * @throws {ProjectNotFoundError} 対象の企画が存在しない場合。
    */
@@ -316,6 +350,26 @@ export class ProjectRepository {
     if (result.meta.changes === 0) {
       throw new ProjectNotFoundError(projectId);
     }
+  }
+
+  /** 企画一件を三つの表へ書き込む文。呼び出し側で一つの batch にまとめる。 */
+  private insertStatements(project: Project): D1PreparedStatement[] {
+    return [
+      this.db
+        .prepare(INSERT_PROJECT)
+        .bind(
+          project.id,
+          project.type,
+          project.groupName,
+          project.projectName,
+          project.description,
+          Number(project.isChildFriendly),
+          Number(project.isRecommended),
+          isTourColumn(project),
+        ),
+      ...this.tagStatements(project),
+      ...this.occasionStatements(project),
+    ];
   }
 
   private tagStatements(project: Project): D1PreparedStatement[] {
@@ -349,7 +403,8 @@ export class ProjectRepository {
       insert.bind(
         project.id,
         position,
-        occasion.place,
+        // place は任意。D1 の bind は undefined を受け付けないため null に寄せる。
+        occasion.place ?? null,
         occasion.timeRange.start.date,
         occasion.timeRange.start.hour,
         occasion.timeRange.start.minute,

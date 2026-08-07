@@ -1,6 +1,7 @@
 # Infrastructure
 
-Cloudflare Access で staging / prod のホスト全体を保護する Terraform stack です。
+Cloudflare Access で staging / prod のホスト全体を保護し、企画アイコン用の
+R2 bucket を管理する Terraform stack です。
 
 - staging: `events26-staging.koudaisai.jp`
 - prod: `events26.koudaisai.jp`
@@ -10,6 +11,8 @@ Cloudflare Access で staging / prod のホスト全体を保護する Terraform
 Zero Trust organization と Identity Provider 自体は中央の infrastructure repository の所有物とし、この stack では既存 ID を参照します。
 
 中央 repository の `cloudflare/zero_trust/access_application.tf` と同じく、指定した Identity Provider でログインできたユーザーを許可します。`allowed_idps` でログイン画面の選択肢を制限し、同じ ID を `login_method` とする allow policy を root application に適用します。
+
+ブラウザを持たない CI や外部システム向けに、環境ごとの Access service token も作成します。service token は identity を持たないため login policy には一致せず、`decision = "non_identity"` の Service Auth policy を root application の precedence 2 に追加しています。Service Auth policy に一致しない request はこれまでどおり login へ redirect されるため、ブラウザからのログインは変わりません。
 
 Terraform state は Wasabi の S3-compatible API に保存します。backend 設定と credentials は `backend.wasabi.sops.env` にまとめ、SOPS + age で暗号化してコミットします。age の秘密鍵、復号済み設定、実 tfvars、state、plan は Git にコミットしません。
 
@@ -32,6 +35,7 @@ API token には対象 Account の次の権限が必要です。
 
 - `Access: Apps and Policies Write`
 - `Access: Organizations, Identity Providers, and Groups Read`
+- `Workers R2 Storage Write`
 
 ## SOPS + age
 
@@ -75,7 +79,7 @@ deploy job は GitHub Environment `main` を参照します。workflow を main 
 Environment secrets は次の2つです。
 
 - `SOPS_AGE_KEY`: `.sops.yaml` の GitHub Actions recipient に対応する age private identity
-- `CLOUDFLARE_API_TOKEN`: 対象 Account 限定の Access 用 API token
+- `CLOUDFLARE_API_TOKEN`: 対象 Account 限定の Access / R2 用 API token
 
 Wasabi credentials は暗号化済み `backend.wasabi.sops.env` から取得するため、Actions secrets へ重複登録しません。Actions用identityはこのrepository専用で、秘密鍵はEnvironment `main`のsecretだけに登録します。GitHubからsecret値は読み戻せないため、交換が必要な場合はインフラ担当者鍵で暗号文を復号できる状態を維持したまま、新しいkeypairへローテーションします。
 
@@ -87,8 +91,10 @@ Environment variables は次のとおりです。set 型の値は JSON 配列で
 | `ENABLED_ENVIRONMENTS`          | `["staging","prod"]`                       | no; default is both |
 | `ALLOWED_IDENTITY_PROVIDER_IDS` | `["00000000-0000-0000-0000-000000000000"]` | yes                 |
 | `SESSION_DURATION`              | `24h`                                      | no                  |
+| `SERVICE_TOKEN_DURATION`        | `8760h`                                    | no                  |
+| `SERVICE_TOKEN_SECRET_VERSION`  | `2`                                        | no                  |
 
-Environment variable の変更だけでは main push workflow は起動しません。値を変更した後は Actions 画面から `Access infrastructure` を main branch に対して手動実行します。手動実行で deploy できるのも main だけです。
+Environment variable の変更だけでは main push workflow は起動しません。値を変更した後は Actions 画面から `Infrastructure` を main branch に対して手動実行します。手動実行で deploy できるのも main だけです。
 
 main の ruleset では、少なくとも pull request 経由、review、`Validate Terraform` check の成功を必須にし、force push と branch deletion を禁止します。`infra/**`、`.sops.yaml`、`.github/workflows/**` は CODEOWNERS review の対象にすることを推奨します。
 
@@ -168,13 +174,68 @@ application の `policies` はこの stack が authoritative に管理します�
 
 ## Wrangler への反映
 
-apply 後に出力される値を `wrangler.jsonc` の `env.staging.vars` / `env.prod.vars` へ反映します。
+apply 後に出力される値を `wrangler.jsonc` の `env.staging` / `env.prod` へ反映します。
 
 ```sh
 ./tf.sh output -json wrangler_access_vars
+./tf.sh output -json wrangler_r2_buckets
 ```
 
 Terraform と Wrangler が同じ Worker 設定を同時に所有すると競合するため、この stack は Worker vars 自体を更新せず、必要な値だけを出力します。
+
+## Service token
+
+環境ごとに service token を1つ作成します。client secret は作成時にしか Cloudflare API から取得できないため、Terraform state と次の output が実質の保管場所です。
+
+```sh
+# 有効期限と client id の確認 (secret を含まない)
+./tf.sh output -json access_service_token_client_ids
+
+# credentials 全体。sensitive output なので name 指定と -json が必要。
+./tf.sh output -json access_service_tokens
+
+# 特定環境の request header をそのまま組み立てる
+./tf.sh output -json access_service_tokens |
+  jq -r '.staging | "CF-Access-Client-Id: \(.client_id)", "CF-Access-Client-Secret: \(.client_secret)"'
+```
+
+利用側は2つのヘッダを付けて request します。Access が検証後に発行する JWT は SSO と同じ `Cf-Access-Jwt-Assertion` ヘッダに入るため、Worker 側の検証はそのまま通ります。
+
+```sh
+CLIENT_ID="$(./tf.sh output -json access_service_tokens | jq -r '.staging.client_id')"
+CLIENT_SECRET="$(./tf.sh output -json access_service_tokens | jq -r '.staging.client_secret')"
+
+# 空の JSON は validation error (400) になるため、データを作らずに
+# service token が origin まで届くことを確認できる。
+curl https://events26-staging.koudaisai.jp/admin/v1/projects \
+  --request POST \
+  --header "CF-Access-Client-Id: ${CLIENT_ID}" \
+  --header "CF-Access-Client-Secret: ${CLIENT_SECRET}" \
+  --header 'Content-Type: application/json' \
+  --data '{}'
+```
+
+secret を rotate するときは `service_token_secret_version` (GitHub Environment では `SERVICE_TOKEN_SECRET_VERSION`) を `1` から順に増やして apply します。旧 secret は `previous_client_secret_expires_at` まで有効なまま残るので、必要なら apply 後に Zero Trust dashboard で失効時刻を早めてください。有効期間自体は `service_token_duration` (既定 `8760h`) で決まります。
+
+secret は shell history や CI log に残さず、password manager 経由で配布してください。`terraform output` を secret 込みで CI log へ出力してはいけません。
+
+企画アイコンの bucket は staging / prod の2個を常に管理し、どちらも APAC の
+Standard storage class で作成します。`prevent_destroy` を設定しているため、bucket
+を廃止するときはコード変更だけでなく、データの退避と明示的な解除が必要です。
+Worker binding からのみアクセスするprivate bucketなので、公開domainやCORSは
+設定しません。
+
+同名bucketが既に存在する場合は、applyより先にstateへimportします。
+
+```sh
+./tf.sh import \
+  'cloudflare_r2_bucket.icons["staging"]' \
+  '<ACCOUNT_ID>/events-api-2026-icons-staging/default'
+
+./tf.sh import \
+  'cloudflare_r2_bucket.icons["prod"]' \
+  '<ACCOUNT_ID>/events-api-2026-icons-prod/default'
+```
 
 初回 rollout を段階的に行う場合は `enabled_environments` を使って一環境ずつ追加します。既定値と GitHub Environment `main` は staging / prod の両方です。root Access application には `prevent_destroy` があるため、一度追加した環境を集合から取り除くことはできません。
 
@@ -184,6 +245,7 @@ Terraform と Wrangler が同じ Worker 設定を同時に所有すると競合�
 4. `/v1` と `/openapi.json` がログインなしで到達できることを両環境で確認
 5. `/admin` が未認証時に Access へ redirect され、指定 IdP でログインできることを確認
 6. `cloudflared access login` のブラウザ認証と、`cloudflared access curl` の API request が完了することを確認
+7. `access_service_tokens` の credentials を付けた `curl` が origin まで到達することを確認
 
 ```sh
 cloudflared access login \
@@ -207,6 +269,7 @@ cloudflared access curl \
 - [Cloudflare Access application paths](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/)
 - [Cloudflare Access from a CLI](https://developers.cloudflare.com/cloudflare-one/tutorials/cli/)
 - [Cloudflare Terraform Access resources](https://developers.cloudflare.com/api/terraform/resources/zero_trust/)
+- [Cloudflare Terraform R2 resource](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/r2_bucket)
 - [SOPS documentation](https://getsops.io/docs/)
 - [SOPS age identities](https://getsops.io/docs/usage/identities/age/)
 - [Terraform S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3)

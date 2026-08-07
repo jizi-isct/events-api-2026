@@ -1,43 +1,62 @@
 import * as v from "valibot";
 import { OccasionSchema } from "./occasion";
 
-export const GeneralTagSchema = v.union([
-  v.literal("experience"),
-  v.literal("display"),
-  v.literal("performance"),
-  v.literal("food"),
-  v.literal("lecture"),
-]);
+// 判別子・列挙は v.literal / v.union ではなく v.picklist を使う。v.literal は
+// JSON Schema の const になり、OpenAPI Generator が解釈できずに型情報ごと落とす。
+const tagOf = <const T extends string>(tag: T) => v.picklist([tag]);
+
+export const GeneralTagSchema = v.pipe(
+  v.picklist(["experience", "display", "performance", "food", "lecture"]),
+  v.metadata({ ref: "GeneralTag" }),
+);
 
 export type GeneralTag = v.InferInput<typeof GeneralTagSchema>;
 
-export const FoodStallTagSchema = v.variant("tag", [
+export const MainFoodStallTagSchema = v.pipe(
   v.object({
-    tag: v.literal("main"),
-    tag2: v.union([
-      v.literal("rice"),
-      v.literal("noodle_flour"),
-      v.literal("skewer_grill"),
-      v.literal("snack"),
-      v.literal("soup"),
-      v.literal("world"),
+    tag: tagOf("main"),
+    tag2: v.picklist([
+      "rice",
+      "noodle_flour",
+      "skewer_grill",
+      "snack",
+      "soup",
+      "world",
     ]),
   }),
+  v.metadata({ ref: "MainFoodStallTag" }),
+);
+
+export const SweetFoodStallTagSchema = v.pipe(
   v.object({
-    tag: v.literal("sweet"),
-    tag2: v.union([
-      v.literal("japanese"),
-      v.literal("western"),
-      v.literal("cold"),
-      v.literal("snack"),
-      v.literal("drink"),
-      v.literal("world"),
+    tag: tagOf("sweet"),
+    tag2: v.picklist([
+      "japanese",
+      "western",
+      "cold",
+      "snack",
+      "drink",
+      "world",
     ]),
   }),
+  v.metadata({ ref: "SweetFoodStallTag" }),
+);
+
+export const DrinkFoodStallTagSchema = v.pipe(
   v.object({
-    tag: v.literal("drink"),
+    tag: tagOf("drink"),
   }),
-]);
+  v.metadata({ ref: "DrinkFoodStallTag" }),
+);
+
+export const FoodStallTagSchema = v.pipe(
+  v.variant("tag", [
+    MainFoodStallTagSchema,
+    SweetFoodStallTagSchema,
+    DrinkFoodStallTagSchema,
+  ]),
+  v.metadata({ ref: "FoodStallTag" }),
+);
 
 export type FoodStallTag = v.InferInput<typeof FoodStallTagSchema>;
 
@@ -45,7 +64,11 @@ export const ProjectIdSchema = v.string();
 
 export type ProjectId = v.InferInput<typeof ProjectIdSchema>;
 
-const ProjectBaseSchema = v.object({
+// 共通情報。v.intersect で種別ごとのスキーマと重ねると JSON Schema 上は
+// allOf + oneOf になるが、OpenAPI Generator はこれを 1 つの構造体に潰して
+// 全種別のフィールドを必須にしてしまう。そのため spec 上は共通情報を各種別に
+// 展開した素の oneOf になるよう、entries を spread して組み立てる。
+const projectBaseEntries = {
   id: ProjectIdSchema,
   groupName: v.string(),
   projectName: v.string(),
@@ -53,34 +76,55 @@ const ProjectBaseSchema = v.object({
   isChildFriendly: v.boolean(),
   isRecommended: v.boolean(),
   occasions: v.array(OccasionSchema),
-});
+};
 
-const ProjectVariantSchema = v.variant("type", [
+export const FoodStallProjectSchema = v.pipe(
   v.object({
-    type: v.literal("food-stall"),
+    ...projectBaseEntries,
+    type: tagOf("food-stall"),
     tag: v.array(FoodStallTagSchema),
   }),
+  v.metadata({ ref: "FoodStallProject" }),
+);
+
+export const GeneralProjectSchema = v.pipe(
   v.object({
-    type: v.literal("general"),
+    ...projectBaseEntries,
+    type: tagOf("general"),
     tag: v.array(GeneralTagSchema),
   }),
+  v.metadata({ ref: "GeneralProject" }),
+);
+
+export const LaboratoryProjectSchema = v.pipe(
   v.object({
-    type: v.literal("laboratory"),
+    ...projectBaseEntries,
+    type: tagOf("laboratory"),
     isTour: v.boolean(),
   }),
+  v.metadata({ ref: "LaboratoryProject" }),
+);
+
+export const StageProjectSchema = v.pipe(
   v.object({
-    type: v.literal("stage"),
+    ...projectBaseEntries,
+    type: tagOf("stage"),
   }),
-]);
+  v.metadata({ ref: "StageProject" }),
+);
 
 /**
- * 企画を表す。共通情報({@link ProjectBaseSchema})に、
- * type で判別される種別ごとの情報({@link ProjectVariantSchema})を重ねた直和型。
+ * 企画を表す。共通情報に、type で判別される種別ごとの情報を加えた直和型。
  */
-export const ProjectSchema = v.intersect([
-  ProjectBaseSchema,
-  ProjectVariantSchema,
-]);
+export const ProjectSchema = v.pipe(
+  v.variant("type", [
+    FoodStallProjectSchema,
+    GeneralProjectSchema,
+    LaboratoryProjectSchema,
+    StageProjectSchema,
+  ]),
+  v.metadata({ ref: "Project" }),
+);
 
 export type Project = v.InferInput<typeof ProjectSchema>;
 

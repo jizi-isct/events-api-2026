@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { openAPIRouteHandler } from "hono-openapi";
 import type { Bindings } from "./bindings";
 import { requireAccess } from "./middleware/access";
@@ -8,6 +9,21 @@ import { places } from "./routes/places";
 import { projects } from "./routes/projects";
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+// 読み取り系は公開情報なので、どのオリジンからでもブラウザで直接読めるようにする。
+// 書き込み系(/admin 配下)は Access で守られており、CORS も付けない。
+const publicCors = cors({
+  origin: "*",
+  allowMethods: ["GET", "HEAD", "OPTIONS"],
+  // アイコンの条件付きリクエストで使うヘッダ。安全リストに入っていないので明示する。
+  allowHeaders: ["If-None-Match", "If-Modified-Since"],
+  // ETag は安全リスト外で、露出させないとブラウザから読めず再検証できない。
+  exposeHeaders: ["ETag", "Content-Length"],
+  maxAge: 86400,
+});
+
+app.use("/v1/*", publicCors);
+app.use("/openapi.json", publicCors);
 
 app.route("/v1/places", places);
 app.route("/v1/projects", projects);

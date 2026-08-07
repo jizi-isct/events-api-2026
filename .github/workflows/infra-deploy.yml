@@ -1,4 +1,4 @@
-name: Access infrastructure
+name: Infrastructure
 
 on:
   pull_request:
@@ -122,6 +122,9 @@ jobs:
           TF_VAR_enabled_environments: ${{ vars.ENABLED_ENVIRONMENTS || '["staging","prod"]' }}
           TF_VAR_allowed_identity_provider_ids: ${{ vars.ALLOWED_IDENTITY_PROVIDER_IDS }}
           TF_VAR_session_duration: ${{ vars.SESSION_DURATION || '24h' }}
+          TF_VAR_service_token_duration: ${{ vars.SERVICE_TOKEN_DURATION || '8760h' }}
+          # 数値変数は HCL literal として解釈されるため、未設定時は null を渡す。
+          TF_VAR_service_token_secret_version: ${{ vars.SERVICE_TOKEN_SECRET_VERSION || 'null' }}
         run: |
           set -euo pipefail
 
@@ -159,7 +162,7 @@ jobs:
           jq -e 'length > 0' >/dev/null <<<"$TF_VAR_allowed_identity_provider_ids" ||
             fail "ALLOWED_IDENTITY_PROVIDER_IDS must not be empty"
 
-          plan_file="${RUNNER_TEMP}/access-infrastructure.tfplan"
+          plan_file="${RUNNER_TEMP}/infrastructure.tfplan"
           cleanup() {
             rm -f -- "$plan_file"
           }
