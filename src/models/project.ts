@@ -60,6 +60,27 @@ export const FoodStallTagSchema = v.pipe(
 
 export type FoodStallTag = v.InferInput<typeof FoodStallTagSchema>;
 
+/**
+ * 企画を探すときの入り口になるカテゴリ。
+ * type やタグとは直交しておらず、laboratory や display のように種別・タグと
+ * 重なる値もあるが、利用者が選ぶ区分としてそのまま持つ。
+ */
+export const CategorySchema = v.pipe(
+  v.picklist([
+    "hearty",
+    "street_food",
+    "sweets",
+    "performance",
+    "play",
+    "cafe",
+    "laboratory",
+    "display",
+  ]),
+  v.metadata({ ref: "Category" }),
+);
+
+export type Category = v.InferInput<typeof CategorySchema>;
+
 export const ProjectIdSchema = v.string();
 
 export type ProjectId = v.InferInput<typeof ProjectIdSchema>;
@@ -75,6 +96,8 @@ const projectBaseEntries = {
   description: v.string(),
   isChildFriendly: v.boolean(),
   isRecommended: v.boolean(),
+  // 未設定の企画があり得るので任意。
+  category: v.optional(CategorySchema),
   occasions: v.array(OccasionSchema),
 };
 

@@ -117,6 +117,24 @@ describe("create と get のラウンドトリップ", () => {
     expect(await repository.get(project.id)).toEqual(project);
   });
 
+  test("カテゴリを保存して読み戻せる", async () => {
+    const project = general({ category: "play" });
+
+    await repository.create(project);
+
+    expect(await repository.get(project.id)).toEqual(project);
+  });
+
+  test("カテゴリ未設定なら category は undefined になる", async () => {
+    await repository.create(general());
+
+    const stored = await repository.get("g1");
+
+    expect(stored?.category).toBeUndefined();
+    // JSON にしたときもキーごと消え、未設定であることが伝わる。
+    expect(JSON.stringify(stored)).not.toContain("category");
+  });
+
   test("タグと occasion の並び順を保つ", async () => {
     const project = foodStall({
       // tag 名の辞書順(drink, main, sweet)とは違う並びにして、
@@ -370,6 +388,18 @@ describe("update", () => {
       ),
     ).rejects.toThrow();
     expect(await repository.get("g1")).toEqual(original);
+  });
+});
+
+describe("category の更新", () => {
+  test("update でカテゴリを付け外しできる", async () => {
+    await repository.create(general());
+
+    await repository.update(general({ category: "cafe" }));
+    expect(await repository.get("g1")).toEqual(general({ category: "cafe" }));
+
+    await repository.update(general());
+    expect(await repository.get("g1")).toEqual(general());
   });
 });
 

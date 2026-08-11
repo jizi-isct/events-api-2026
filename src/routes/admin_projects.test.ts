@@ -788,6 +788,54 @@ describe("OpenAPI", () => {
   });
 });
 
+describe("カテゴリ", () => {
+  test("カテゴリつきで登録して読み戻せる", async () => {
+    const res = await authorized("/admin/v1/projects", {
+      method: "POST",
+      body: JSON.stringify({ ...general, category: "play" }),
+    });
+
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({ ...general, category: "play" });
+    expect(await repository.get(general.id)).toEqual({
+      ...general,
+      category: "play",
+    });
+  });
+
+  test("カテゴリは省略できる", async () => {
+    const res = await authorized("/admin/v1/projects", {
+      method: "POST",
+      body: JSON.stringify(general),
+    });
+
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual(general);
+  });
+
+  test("定義に無いカテゴリは 400", async () => {
+    const res = await authorized("/admin/v1/projects", {
+      method: "POST",
+      body: JSON.stringify({ ...general, category: "gatsuri" }),
+    });
+
+    expect(res.status).toBe(400);
+    expect(await repository.get(general.id)).toBeNull();
+  });
+
+  test("update でカテゴリを外せる", async () => {
+    await repository.create({ ...general, category: "display" });
+
+    const res = await authorized(`/admin/v1/projects/${general.id}`, {
+      method: "PUT",
+      body: JSON.stringify(general),
+    });
+
+    expect(res.status).toBe(200);
+    expect((await repository.get(general.id))?.category).toBeUndefined();
+  });
+});
+
 describe("Discord への通知", () => {
   test("企画の登録を通知する", async () => {
     const res = await notifying("/admin/v1/projects", {
