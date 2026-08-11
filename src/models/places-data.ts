@@ -23,6 +23,12 @@ export const districts = [
             displayName: "地下2階イベントスペース",
             floor: "B2F",
           },
+          {
+            type: "room",
+            name: "tp-1",
+            displayName: "1階",
+            floor: "1F",
+          },
         ],
       },
       {
@@ -105,6 +111,7 @@ export const districts = [
           { type: "room", name: "m-102", displayName: "M-102", floor: "1F" },
           { type: "room", name: "m-107", displayName: "M-107", floor: "1F" },
           { type: "room", name: "m-112", displayName: "M-112", floor: "1F" },
+          { type: "room", name: "m-119", displayName: "M-119", floor: "1F" },
           { type: "room", name: "m-123", displayName: "M-123", floor: "1F" },
           { type: "room", name: "m-134", displayName: "M-134", floor: "1F" },
           { type: "room", name: "m-135", displayName: "M-135", floor: "1F" },
@@ -401,6 +408,7 @@ export const districts = [
         name: "w5",
         displayName: "西5号館",
         rooms: [
+          { type: "room", name: "w5-104", displayName: "W5-104", floor: "1F" },
           { type: "room", name: "w5-105", displayName: "W5-105", floor: "1F" },
           { type: "room", name: "w5-106", displayName: "W5-106", floor: "1F" },
           { type: "room", name: "w5-107", displayName: "W5-107", floor: "1F" },
@@ -452,6 +460,12 @@ export const districts = [
           { type: "room", name: "w9-325", displayName: "W9-325", floor: "3F" },
           { type: "room", name: "w9-326", displayName: "W9-326", floor: "3F" },
           { type: "room", name: "w9-327", displayName: "W9-327", floor: "3F" },
+          {
+            type: "room",
+            name: "w9-606a",
+            displayName: "W9-606A",
+            floor: "6F",
+          },
           { type: "room", name: "w9-706", displayName: "W9-706", floor: "7F" },
           { type: "room", name: "w9-707", displayName: "W9-707", floor: "7F" },
           { type: "room", name: "w9-716", displayName: "W9-716", floor: "7F" },
