@@ -25,6 +25,7 @@ interface ProjectRow {
   is_recommended: number;
   category: Category | null;
   is_tour: number | null;
+  offering: string | null;
 }
 
 interface TagRow {
@@ -46,7 +47,7 @@ interface OccasionRow {
 
 const SELECT_PROJECT_COLUMNS = `
   id, type, group_name, project_name, description,
-  is_child_friendly, is_recommended, category, is_tour
+  is_child_friendly, is_recommended, category, is_tour, offering
 `;
 
 const SELECT_TAG_COLUMNS = `project_id, tag, tag2`;
@@ -60,14 +61,15 @@ const SELECT_OCCASION_COLUMNS = `
 const INSERT_PROJECT = `
   INSERT INTO projects (
     id, type, group_name, project_name, description,
-    is_child_friendly, is_recommended, category, is_tour
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    is_child_friendly, is_recommended, category, is_tour, offering
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 const UPDATE_PROJECT = `
   UPDATE projects SET
     type = ?, group_name = ?, project_name = ?, description = ?,
-    is_child_friendly = ?, is_recommended = ?, category = ?, is_tour = ?
+    is_child_friendly = ?, is_recommended = ?, category = ?, is_tour = ?,
+    offering = ?
   WHERE id = ?
 `;
 
@@ -86,6 +88,13 @@ const INSERT_OCCASION = `
 /** 種別ごとの列。laboratory 以外では NULL(マイグレーションの CHECK と対応)。 */
 const isTourColumn = (project: Project): number | null =>
   project.type === "laboratory" ? Number(project.isTour) : null;
+
+/**
+ * 種別ごとの列。food-stall 以外では NULL(マイグレーションの CHECK と対応)。
+ * food-stall でも未設定なら NULL。
+ */
+const offeringColumn = (project: Project): string | null =>
+  project.type === "food-stall" ? (project.offering ?? null) : null;
 
 const groupByProjectId = <T extends { project_id: string }>(
   rows: T[],
@@ -154,6 +163,8 @@ const toProject = (
           ? { tag: tagRow.tag }
           : { tag: tagRow.tag, tag2: tagRow.tag2 },
       );
+      // 任意の項目。DB の NULL はキーごと落として undefined に揃える。
+      project.offering = row.offering ?? undefined;
       break;
     case "laboratory":
       project.isTour = row.is_tour === 1;
@@ -306,6 +317,7 @@ export class ProjectRepository {
           Number(project.isRecommended),
           project.category ?? null,
           isTourColumn(project),
+          offeringColumn(project),
           project.id,
         ),
       this.db
@@ -372,6 +384,7 @@ export class ProjectRepository {
           Number(project.isRecommended),
           project.category ?? null,
           isTourColumn(project),
+          offeringColumn(project),
         ),
       ...this.tagStatements(project),
       ...this.occasionStatements(project),

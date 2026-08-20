@@ -50,6 +50,7 @@ const foodStall = (
   type: "food-stall",
   groupName: "サークルB",
   projectName: "手作りクレープ",
+  offering: "クレープ",
   description: "説明",
   isChildFriendly: false,
   isRecommended: true,
@@ -133,6 +134,16 @@ describe("create と get のラウンドトリップ", () => {
     expect(stored?.category).toBeUndefined();
     // JSON にしたときもキーごと消え、未設定であることが伝わる。
     expect(JSON.stringify(stored)).not.toContain("category");
+  });
+
+  test("出し物名未設定なら offering は undefined になる", async () => {
+    const project = foodStall({ offering: undefined });
+    await repository.create(project);
+
+    const stored = await repository.get(project.id);
+
+    expect(stored).toEqual(project);
+    expect(JSON.stringify(stored)).not.toContain("offering");
   });
 
   test("タグと occasion の並び順を保つ", async () => {
