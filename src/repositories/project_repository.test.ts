@@ -50,6 +50,7 @@ const foodStall = (
   type: "food-stall",
   groupName: "サークルB",
   projectName: "手作りクレープ",
+  offering: "クレープ",
   description: "説明",
   isChildFriendly: false,
   isRecommended: true,
