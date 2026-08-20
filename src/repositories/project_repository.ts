@@ -89,9 +89,12 @@ const INSERT_OCCASION = `
 const isTourColumn = (project: Project): number | null =>
   project.type === "laboratory" ? Number(project.isTour) : null;
 
-/** 種別ごとの列。food-stall 以外では NULL(マイグレーションの CHECK と対応)。 */
+/**
+ * 種別ごとの列。food-stall 以外では NULL(マイグレーションの CHECK と対応)。
+ * food-stall でも未設定なら NULL。
+ */
 const offeringColumn = (project: Project): string | null =>
-  project.type === "food-stall" ? project.offering : null;
+  project.type === "food-stall" ? (project.offering ?? null) : null;
 
 const groupByProjectId = <T extends { project_id: string }>(
   rows: T[],
@@ -160,8 +163,8 @@ const toProject = (
           ? { tag: tagRow.tag }
           : { tag: tagRow.tag, tag2: tagRow.tag2 },
       );
-      // NULL なら ProjectSchema の検証で弾かれる(マイグレーションの CHECK と対応)。
-      project.offering = row.offering;
+      // 任意の項目。DB の NULL はキーごと落として undefined に揃える。
+      project.offering = row.offering ?? undefined;
       break;
     case "laboratory":
       project.isTour = row.is_tour === 1;

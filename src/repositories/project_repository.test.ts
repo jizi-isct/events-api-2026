@@ -136,6 +136,16 @@ describe("create と get のラウンドトリップ", () => {
     expect(JSON.stringify(stored)).not.toContain("category");
   });
 
+  test("出し物名未設定なら offering は undefined になる", async () => {
+    const project = foodStall({ offering: undefined });
+    await repository.create(project);
+
+    const stored = await repository.get(project.id);
+
+    expect(stored).toEqual(project);
+    expect(JSON.stringify(stored)).not.toContain("offering");
+  });
+
   test("タグと occasion の並び順を保つ", async () => {
     const project = foodStall({
       // tag 名の辞書順(drink, main, sweet)とは違う並びにして、

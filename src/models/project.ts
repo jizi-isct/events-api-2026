@@ -106,7 +106,8 @@ export const FoodStallProjectSchema = v.pipe(
     ...projectBaseEntries,
     type: tagOf("food-stall"),
     tag: v.array(FoodStallTagSchema),
-    offering: v.string(),
+    // 未設定の企画があり得るので任意。
+    offering: v.optional(v.string()),
   }),
   v.metadata({ ref: "FoodStallProject" }),
 );
