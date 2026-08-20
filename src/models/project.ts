@@ -106,7 +106,7 @@ export const FoodStallProjectSchema = v.pipe(
     ...projectBaseEntries,
     type: tagOf("food-stall"),
     tag: v.array(FoodStallTagSchema),
-    offering: v.string()
+    offering: v.string(),
   }),
   v.metadata({ ref: "FoodStallProject" }),
 );
