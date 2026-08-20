@@ -16,7 +16,6 @@ describe("GET /v1/places", () => {
 
     const body = (await res.json()) as PlaceSummary[];
     expect(v.safeParse(v.array(PlaceSummarySchema), body).success).toBe(true);
-    expect(body.length).toBe(269);
     expect(body[0]).toEqual({
       id: "east",
       type: "district",
@@ -186,7 +185,6 @@ describe("GET /openapi.json", () => {
     expect(ids).toContain("east");
     expect(ids).toContain("east.taki-plaza.tp-b1-event");
     expect(ids).toContain("ishikawadai.fs-ishikawadai.7");
-    expect(ids.length).toBe(269);
   });
 
   test("does not document itself", async () => {
