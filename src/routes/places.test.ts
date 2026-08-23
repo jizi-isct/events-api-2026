@@ -32,7 +32,7 @@ describe("GET /v1/places", () => {
     const body = (await res.json()) as PlaceSummary[];
     expect(body.map((place) => place.id)).toEqual([
       "east.taki-plaza-stage",
-      "east.wood-deck",
+      "east.wood-deck-stage",
       "east.outdoor-stage",
       "west.lecture-hall-70",
       "west.digital-hall",

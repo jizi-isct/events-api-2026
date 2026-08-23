@@ -49,7 +49,12 @@ export const districts = [
         name: "taki-plaza-stage",
         displayName: "Taki Plazaステージ",
       },
-      { type: "stage", name: "wood-deck", displayName: "ウッドデッキステージ" },
+      {
+        type: "stage",
+        name: "wood-deck-stage",
+        displayName: "ウッドデッキステージ",
+      },
+      { type: "outdoor", name: "wood-deck", displayName: "ウッドデッキ" },
       { type: "stage", name: "outdoor-stage", displayName: "野外ステージ" },
       {
         type: "food_stall_area",
@@ -131,6 +136,12 @@ export const districts = [
           { type: "room", name: "m-278", displayName: "M-278", floor: "2F" },
           { type: "room", name: "m-356", displayName: "M-356", floor: "3F" },
           { type: "room", name: "m-b61", displayName: "M-B61", floor: "B1F" },
+          {
+            type: "room",
+            name: "m-213",
+            displayName: "M-213",
+            floor: "2F",
+          },
           {
             type: "room",
             name: "m-290",
@@ -231,6 +242,7 @@ export const districts = [
           { type: "room", name: "s3-403", displayName: "S3-403", floor: "4F" },
           { type: "room", name: "s3-413", displayName: "S3-413", floor: "4F" },
           { type: "room", name: "s3-414", displayName: "S3-414", floor: "4F" },
+          { type: "room", name: "s3-505", displayName: "S3-505", floor: "5F" },
           { type: "room", name: "s3-510", displayName: "S3-510", floor: "5F" },
           { type: "room", name: "s3-601", displayName: "S3-601", floor: "6F" },
           { type: "room", name: "s3-611", displayName: "S3-611", floor: "6F" },
@@ -274,8 +286,10 @@ export const districts = [
           { type: "room", name: "s8-101", displayName: "S8-101", floor: "1F" },
           { type: "room", name: "s8-107", displayName: "S8-107", floor: "1F" },
           { type: "room", name: "s8-501", displayName: "S8-501", floor: "5F" },
+          { type: "room", name: "s8-512", displayName: "S8-512", floor: "5F" },
           { type: "room", name: "s8-516", displayName: "S8-516", floor: "5F" },
           { type: "room", name: "s8-518", displayName: "S8-518", floor: "5F" },
+          { type: "room", name: "s8-520", displayName: "S8-520", floor: "5F" },
           {
             type: "room",
             name: "s8-entrance",
@@ -451,6 +465,12 @@ export const districts = [
             floor: "7F",
           },
           { type: "room", name: "w8-901", displayName: "W8-901", floor: "9F" },
+          {
+            type: "room",
+            name: "w8-5ev",
+            displayName: "エレベーターホール",
+            floor: "5F",
+          },
         ],
       },
       {
@@ -476,6 +496,13 @@ export const districts = [
           { type: "room", name: "w9-706", displayName: "W9-706", floor: "7F" },
           { type: "room", name: "w9-707", displayName: "W9-707", floor: "7F" },
           { type: "room", name: "w9-716", displayName: "W9-716", floor: "7F" },
+          {
+            type: "room",
+            name: "w9-733",
+            displayName: "W9-733",
+            alias: "リフレッシュルーム",
+            floor: "7F",
+          },
         ],
       },
       {
@@ -625,6 +652,12 @@ export const districts = [
             displayName: "MI6-302",
             floor: "3F",
           },
+          {
+            type: "room",
+            name: "mi6-303",
+            displayName: "MI6-303",
+            floor: "3F",
+          },
         ],
       },
     ],
@@ -655,6 +688,19 @@ export const districts = [
             name: "i7-mishima",
             displayName: "Mishima Hall",
             floor: "1F",
+          },
+        ],
+      },
+      {
+        type: "building",
+        name: "i9",
+        displayName: "石川台9号館",
+        rooms: [
+          {
+            type: "room",
+            name: "i9-207",
+            displayName: "I9-207",
+            floor: "2F",
           },
         ],
       },
