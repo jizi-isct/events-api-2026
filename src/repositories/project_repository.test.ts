@@ -83,7 +83,7 @@ const stage = (
   description: "説明",
   isChildFriendly: true,
   isRecommended: false,
-  occasions: [occasionAt("east.wood-deck", 15)],
+  occasions: [occasionAt("east.wood-deck-stage", 15)],
   ...overrides,
 });
 

@@ -348,7 +348,7 @@ describe("POST /admin/v1/projects/bulk", () => {
     isRecommended: false,
     occasions: [
       {
-        place: "east.wood-deck",
+        place: "east.wood-deck-stage",
         timeRange: {
           start: { date: 2, hour: 13, minute: 0 },
           end: { date: 2, hour: 14, minute: 0 },
