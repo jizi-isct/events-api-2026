@@ -40,6 +40,7 @@ describe("getPlace", () => {
       displayName: "緑が丘6号館",
       rooms: [
         { type: "room", name: "mi6-302", displayName: "MI6-302", floor: "3F" },
+        { type: "room", name: "mi6-303", displayName: "MI6-303", floor: "3F" },
       ],
     });
   });
