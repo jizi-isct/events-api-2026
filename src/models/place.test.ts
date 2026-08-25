@@ -54,6 +54,15 @@ describe("getPlace", () => {
     });
   });
 
+  test("gets the first floor of north laboratory 1", () => {
+    expect(getPlace("north.lab1.lab1-1f")).toEqual({
+      type: "room",
+      name: "lab1-1f",
+      displayName: "1F",
+      floor: "1F",
+    });
+  });
+
   test("rejects an unknown ID", () => {
     expect(v.safeParse(PlaceIdSchema, "midorigaoka.mi6.unknown").success).toBe(
       false,
