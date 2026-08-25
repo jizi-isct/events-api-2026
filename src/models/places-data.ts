@@ -634,6 +634,19 @@ export const districts = [
           },
         ],
       },
+      {
+        type: "building",
+        name: "lab1",
+        displayName: "北実験棟1原子動力実験室",
+        rooms: [
+          {
+            type: "room",
+            name: "lab1-1f",
+            displayName: "1F",
+            floor: "1F",
+          },
+        ],
+      },
     ],
   },
   {
