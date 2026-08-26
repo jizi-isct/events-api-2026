@@ -97,7 +97,7 @@ describe("GET /v1/places/:placeId", () => {
     expect(await res.json()).toEqual({
       type: "food_stall_slot",
       name: "1",
-      displayName: "1",
+      displayName: "①",
     });
   });
 
