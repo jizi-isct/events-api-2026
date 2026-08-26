@@ -336,7 +336,7 @@ export const districts = [
       {
         type: "food_stall_area",
         name: "fs-south-east",
-        displayName: "南地区東",
+        displayName: "東",
         slots: [
           { type: "food_stall_slot", name: "1", displayName: "1" },
           { type: "food_stall_slot", name: "2", displayName: "2" },
@@ -367,7 +367,7 @@ export const districts = [
       {
         type: "food_stall_area",
         name: "fs-south-west",
-        displayName: "南地区西",
+        displayName: "西",
         slots: [
           { type: "food_stall_slot", name: "1", displayName: "1" },
           { type: "food_stall_slot", name: "2", displayName: "2" },
@@ -720,7 +720,7 @@ export const districts = [
       {
         type: "food_stall_area",
         name: "fs-ishikawadai",
-        displayName: "石川台地区",
+        displayName: "",
         slots: [
           { type: "food_stall_slot", name: "1", displayName: "1" },
           { type: "food_stall_slot", name: "2", displayName: "2" },
