@@ -83,6 +83,7 @@ const PROJECT_TYPE_LABELS: Record<Project["type"], string> = {
   general: "一般",
   laboratory: "研究室",
   stage: "ステージ",
+  official: "公式",
 };
 
 const yesNo = (value: boolean): string => (value ? "はい" : "いいえ");
@@ -112,7 +113,7 @@ const formatTags = (project: Project): string | null => {
             )
             .join(", ");
     default:
-      // 研究室企画とステージ企画はタグを持たない。
+      // 研究室企画、ステージ企画、公式企画はタグを持たない。
       return null;
   }
 };

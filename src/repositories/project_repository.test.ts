@@ -88,6 +88,20 @@ const stage = (
   ...overrides,
 });
 
+const official = (
+  overrides: Partial<ProjectOf<"official">> = {},
+): ProjectOf<"official"> => ({
+  id: "o1",
+  type: "official",
+  groupName: "工大祭実行委員会",
+  projectName: "公式企画",
+  description: "説明",
+  isChildFriendly: true,
+  isRecommended: true,
+  occasions: [occasionAt("east.taki-plaza", 12)],
+  ...overrides,
+});
+
 /** 型は通るが DB の CHECK に違反する occasion(終了が開始より前)。 */
 const invalidOccasion: Occasion = {
   place: "south.s3.s3-206",
@@ -112,6 +126,7 @@ describe("create と get のラウンドトリップ", () => {
     ["food-stall", foodStall()],
     ["laboratory", laboratory()],
     ["stage", stage()],
+    ["official", official()],
   ])("%s を保存して同じ値で読み戻せる", async (_type, project) => {
     await repository.create(project);
 
