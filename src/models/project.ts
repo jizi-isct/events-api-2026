@@ -138,6 +138,14 @@ export const StageProjectSchema = v.pipe(
   v.metadata({ ref: "StageProject" }),
 );
 
+export const OfficialProjectSchema = v.pipe(
+  v.object({
+    ...projectBaseEntries,
+    type: tagOf("official"),
+  }),
+  v.metadata({ ref: "OfficialProject" }),
+);
+
 /**
  * 企画を表す。共通情報に、type で判別される種別ごとの情報を加えた直和型。
  */
@@ -147,6 +155,7 @@ export const ProjectSchema = v.pipe(
     GeneralProjectSchema,
     LaboratoryProjectSchema,
     StageProjectSchema,
+    OfficialProjectSchema,
   ]),
   v.metadata({ ref: "Project" }),
 );

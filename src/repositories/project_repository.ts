@@ -170,6 +170,7 @@ const toProject = (
       project.isTour = row.is_tour === 1;
       break;
     case "stage":
+    case "official":
       break;
   }
 
