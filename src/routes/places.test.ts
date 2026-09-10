@@ -47,6 +47,20 @@ describe("GET /v1/places", () => {
     ]);
   });
 
+  test("returns the south building 7 second floor with an empty displayName", async () => {
+    const res = await app.request("/v1/places?name=s7-2f");
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([
+      {
+        id: "south.s7.s7-2f",
+        type: "room",
+        name: "s7-2f",
+        displayName: "",
+      },
+    ]);
+  });
+
   test("filters by partial displayName", async () => {
     const res = await app.request(
       `/v1/places?displayName=${encodeURIComponent("ステージ")}`,
@@ -184,6 +198,7 @@ describe("GET /openapi.json", () => {
 
     expect(ids).toContain("east");
     expect(ids).toContain("east.taki-plaza.tp-b1-event");
+    expect(ids).toContain("south.s7.s7-2f");
     expect(ids).toContain("ishikawadai.fs-ishikawadai.7");
   });
 
