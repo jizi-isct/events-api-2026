@@ -265,6 +265,7 @@ export const districts = [
         name: "s7",
         displayName: "南7号館",
         rooms: [
+          { type: "room", name: "s7-2f", displayName: "", floor: "2F" },
           { type: "room", name: "s7-201", displayName: "S7-201", floor: "2F" },
           { type: "room", name: "s7-202", displayName: "S7-202", floor: "2F" },
           { type: "room", name: "s7-207", displayName: "S7-207", floor: "2F" },
@@ -469,7 +470,7 @@ export const districts = [
             type: "room",
             name: "w8-5ev",
             displayName: "エレベーターホール",
-            floor: "5F",
+            floor: "E棟5F",
           },
         ],
       },

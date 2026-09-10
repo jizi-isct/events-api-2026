@@ -45,14 +45,32 @@ describe("getPlace", () => {
     });
   });
 
-  test("gets a room by its hierarchical ID", () => {
-    expect(getPlace("midorigaoka.mi6.mi6-302")).toEqual({
-      type: "room",
+  test.each([
+    {
+      id: "midorigaoka.mi6.mi6-302",
       name: "mi6-302",
       displayName: "MI6-302",
       floor: "3F",
-    });
-  });
+    },
+    {
+      id: "south.s7.s7-2f",
+      name: "s7-2f",
+      displayName: "",
+      floor: "2F",
+    },
+    {
+      id: "west.w8.w8-5ev",
+      name: "w8-5ev",
+      displayName: "エレベーターホール",
+      floor: "E棟5F",
+    },
+  ] as const)(
+    "gets room $id by its hierarchical ID",
+    ({ id, name, displayName, floor }) => {
+      expect(v.safeParse(PlaceIdSchema, id).success).toBe(true);
+      expect(getPlace(id)).toEqual({ type: "room", name, displayName, floor });
+    },
+  );
 
   test("gets the first floor of north laboratory 1", () => {
     expect(getPlace("north.lab1.lab1-1f")).toEqual({
