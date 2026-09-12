@@ -447,16 +447,36 @@ export const districts = [
         name: "w8",
         displayName: "西8号館",
         rooms: [
-          { type: "room", name: "w8-404", displayName: "W8-404", floor: "4F" },
-          { type: "room", name: "w8-407", displayName: "W8-407", floor: "4F" },
+          {
+            type: "room",
+            name: "w8-404",
+            displayName: "W8-404",
+            floor: "E棟4F",
+          },
+          {
+            type: "room",
+            name: "w8-407",
+            displayName: "W8-407",
+            floor: "E棟4F",
+          },
           { type: "room", name: "w8-509", displayName: "W8-509", floor: "5F" },
-          { type: "room", name: "w8-601", displayName: "W8-601", floor: "6F" },
-          { type: "room", name: "w8-604", displayName: "W8-604", floor: "6F" },
+          {
+            type: "room",
+            name: "w8-601",
+            displayName: "W8-601",
+            floor: "E棟6F",
+          },
+          {
+            type: "room",
+            name: "w8-604",
+            displayName: "W8-604",
+            floor: "E棟6F",
+          },
           {
             type: "room",
             name: "w8-609",
             displayName: "W8-609",
-            floor: "6F",
+            floor: "E棟6F",
             alias: "コラボレーションルーム",
           },
           {
@@ -465,7 +485,12 @@ export const districts = [
             displayName: "リフレッシュコーナー",
             floor: "7F",
           },
-          { type: "room", name: "w8-901", displayName: "W8-901", floor: "9F" },
+          {
+            type: "room",
+            name: "w8-901",
+            displayName: "W8-901",
+            floor: "E棟9F",
+          },
           {
             type: "room",
             name: "w8-5ev",
