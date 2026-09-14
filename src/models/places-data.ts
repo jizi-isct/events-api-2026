@@ -459,7 +459,12 @@ export const districts = [
             displayName: "W8-407",
             floor: "E棟4F",
           },
-          { type: "room", name: "w8-509", displayName: "W8-509", floor: "5F" },
+          {
+            type: "room",
+            name: "w8-509",
+            displayName: "W8-509",
+            floor: "E棟5F",
+          },
           {
             type: "room",
             name: "w8-601",
@@ -483,7 +488,7 @@ export const districts = [
             type: "room",
             name: "w8-7rf",
             displayName: "リフレッシュコーナー",
-            floor: "7F",
+            floor: "E棟7F",
           },
           {
             type: "room",
