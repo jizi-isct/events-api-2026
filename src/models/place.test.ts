@@ -45,6 +45,15 @@ describe("getPlace", () => {
     });
   });
 
+  test("gets a building without rooms", () => {
+    expect(getPlace("east.mosimo")).toEqual({
+      type: "building",
+      name: "mosimo",
+      displayName: "もしも：まちと未来の実験室",
+      rooms: [],
+    });
+  });
+
   test.each([
     {
       id: "midorigaoka.mi6.mi6-302",

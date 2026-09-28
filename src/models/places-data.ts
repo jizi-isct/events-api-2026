@@ -45,6 +45,12 @@ export const districts = [
         ],
       },
       {
+        type: "building",
+        name: "mosimo",
+        displayName: "もしも：まちと未来の実験室",
+        rooms: [],
+      },
+      {
         type: "stage",
         name: "taki-plaza-stage",
         displayName: "Taki Plazaステージ",
