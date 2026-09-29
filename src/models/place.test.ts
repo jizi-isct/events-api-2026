@@ -73,6 +73,12 @@ describe("getPlace", () => {
       displayName: "エレベーターホール",
       floor: "E棟5F",
     },
+    {
+      id: "west.w9.w9e-mediahall",
+      name: "w9e-mediahall",
+      displayName: "メディアホール前",
+      floor: "E棟2F",
+    },
   ] as const)(
     "gets room $id by its hierarchical ID",
     ({ id, name, displayName, floor }) => {
