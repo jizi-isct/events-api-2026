@@ -1,4 +1,4 @@
-import { type Context, Hono } from "hono";
+import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import * as v from "valibot";
@@ -9,16 +9,12 @@ import {
   ProjectNotFoundError,
   ProjectRepository,
 } from "../repositories/project_repository";
-import { DiscordService } from "../services/discord_service";
 import {
   IconValidator,
   InvalidIconAspectRatioError,
   UnsupportedIconFormatError,
 } from "../services/icon_validator";
-import {
-  ProjectNotifier,
-  type ProjectEvent,
-} from "../services/project_notifier";
+import { notifyProject } from "../services/notify_project";
 
 const MessageSchema = v.object({
   message: v.string(),
@@ -46,48 +42,6 @@ const MAX_ICON_SIZE = 20_000_000;
 const BinaryImageSchema = {
   type: "string" as const,
   format: "binary",
-};
-
-/**
- * 企画への変更を Discord へ通知する。通知はベストエフォートで、失敗しても
- * API の応答は変えず warn を残すだけに留める。webhook 未設定なら何もしない。
- */
-const notify = async (
-  c: Context<{ Bindings: Bindings }>,
-  event: ProjectEvent,
-): Promise<void> => {
-  const webhookUrl = c.env.DISCORD_WEBHOOK_URL;
-
-  if (webhookUrl === undefined || webhookUrl === "") {
-    return;
-  }
-
-  // アイコンの URL は公開 API と同じオリジンから引く。admin も公開ルートも
-  // 同じ custom domain に載っているので、受け取ったリクエストの origin でよい。
-  const notifier = new ProjectNotifier(
-    new DiscordService(webhookUrl),
-    new URL(c.req.url).origin,
-  );
-
-  const sending = notifier.notify(event).catch((error: unknown) => {
-    const target =
-      event.type === "bulk_created"
-        ? `${String(event.projects.length)} projects`
-        : event.projectId;
-
-    console.warn(
-      `Failed to notify Discord of project ${event.type} (${target})`,
-      error,
-    );
-  });
-
-  try {
-    // 応答を通知の完了まで待たせない。
-    c.executionCtx.waitUntil(sending);
-  } catch {
-    // ExecutionContext 無しで呼ばれた場合は、送信が打ち切られないようここで待つ。
-    await sending;
-  }
 };
 
 const errorResponses = {
@@ -139,7 +93,11 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       }
 
       await repository.create(project);
-      await notify(c, { type: "created", projectId: project.id, project });
+      await notifyProject(c, {
+        type: "created",
+        projectId: project.id,
+        project,
+      });
 
       return c.json(project, 201);
     },
@@ -198,7 +156,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       }
 
       await repository.createMany(projects);
-      await notify(c, { type: "bulk_created", projects });
+      await notifyProject(c, { type: "bulk_created", projects });
 
       return c.json(projects, 201);
     },
@@ -253,7 +211,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await notify(c, {
+      await notifyProject(c, {
         type: "updated",
         projectId,
         project,
@@ -311,7 +269,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         return c.json({ message: `Unknown project ID: ${projectId}` }, 404);
       }
 
-      await notify(c, {
+      await notifyProject(c, {
         type: "description_updated",
         projectId,
         project,
@@ -418,7 +376,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await notify(c, { type: "icon_updated", projectId, project });
+      await notifyProject(c, { type: "icon_updated", projectId, project });
 
       return c.body(null, 204);
     },
@@ -441,7 +399,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
     async (c) => {
       const { projectId } = c.req.valid("param");
       await new IconRepository(c.env.ICON_BUCKET).delete(projectId);
-      await notify(c, { type: "icon_deleted", projectId });
+      await notifyProject(c, { type: "icon_deleted", projectId });
 
       return c.body(null, 204);
     },
@@ -482,7 +440,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await notify(c, {
+      await notifyProject(c, {
         type: "deleted",
         projectId,
         project: project ?? undefined,

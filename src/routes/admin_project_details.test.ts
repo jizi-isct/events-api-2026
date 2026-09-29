@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import app from "../index";
 import { DEV_BYPASS_VALUE } from "../middleware/access";
 import type { Menu, Project, ProjectDetails } from "../models";
@@ -9,6 +9,29 @@ import { ProjectRepository } from "../repositories/project_repository";
 const db = env.DB;
 const projectRepository = new ProjectRepository(db);
 const detailsRepository = new ProjectDetailsRepository(db);
+
+const WEBHOOK_URL = "https://discord.example/api/webhooks/1/token";
+const webhookPayloads: unknown[] = [];
+let webhookStatus = 204;
+const realFetch = globalThis.fetch;
+
+vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+  const url =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url;
+
+  if (url === WEBHOOK_URL) {
+    webhookPayloads.push(JSON.parse(init?.body as string));
+    return new Response(webhookStatus === 204 ? null : "webhook is gone", {
+      status: webhookStatus,
+    });
+  }
+
+  return realFetch(input, init);
+});
 
 const project: Project = {
   id: "g1",
@@ -45,12 +68,15 @@ const fullDetails: ProjectDetails = {
 
 beforeEach(async () => {
   await db.prepare(`DELETE FROM projects`).run();
+  webhookPayloads.length = 0;
+  webhookStatus = 204;
 });
 
 const requestAdmin = async (
   path: string,
   method: "PUT" | "DELETE",
   body?: unknown,
+  webhookUrl = "",
 ): Promise<Response> =>
   app.request(
     path,
@@ -59,7 +85,11 @@ const requestAdmin = async (
       headers: { "Content-Type": "application/json" },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     },
-    { ...env, ACCESS_DEV_BYPASS: DEV_BYPASS_VALUE },
+    {
+      ...env,
+      ACCESS_DEV_BYPASS: DEV_BYPASS_VALUE,
+      DISCORD_WEBHOOK_URL: webhookUrl,
+    },
   );
 
 describe("Access による保護", () => {
@@ -285,6 +315,153 @@ describe("存在しない企画", () => {
     expect(await res.json()).toEqual({
       message: "Unknown project ID: unknown",
     });
+  });
+});
+
+describe("Discord への通知", () => {
+  test("メニュー・追加情報の更新と削除を既存 webhook へ通知する", async () => {
+    await projectRepository.create(project);
+
+    const operations = [
+      ["/admin/v1/projects/g1/details/menu", "PUT", originalMenu],
+      ["/admin/v1/projects/g1/details/menu", "DELETE", undefined],
+      [
+        "/admin/v1/projects/g1/details/additionalInfo",
+        "PUT",
+        "@everyone にお知らせ",
+      ],
+      ["/admin/v1/projects/g1/details/additionalInfo", "DELETE", undefined],
+    ] as const;
+
+    for (const [path, method, body] of operations) {
+      const response = await requestAdmin(path, method, body, WEBHOOK_URL);
+      expect(response.status).toBe(204);
+    }
+
+    const payloads = webhookPayloads as {
+      username: string;
+      allowed_mentions: { parse: string[] };
+      embeds: {
+        title: string;
+        fields: { name: string; value: string; inline: boolean }[];
+      }[];
+    }[];
+    expect(payloads.map((payload) => payload.embeds[0]?.title)).toEqual([
+      "企画メニューを更新しました",
+      "企画メニューを削除しました",
+      "企画追加情報を更新しました",
+      "企画追加情報を削除しました",
+    ]);
+    for (const payload of payloads) {
+      expect(payload.username).toBe("g1");
+      expect(payload.embeds[0]?.fields).toContainEqual({
+        name: "企画ID",
+        value: "g1",
+        inline: true,
+      });
+      expect(payload.allowed_mentions).toEqual({ parse: [] });
+    }
+    expect(payloads[0]?.embeds[0]?.fields).toContainEqual({
+      name: "メニュー",
+      value: "・クレープ（500円） / オプション: アイス追加（100円）",
+      inline: false,
+    });
+    expect(payloads[2]?.embeds[0]?.fields).toContainEqual({
+      name: "追加情報",
+      value: "@everyone にお知らせ",
+      inline: false,
+    });
+  });
+
+  test("同じ値の再保存と未登録値の削除も通知する", async () => {
+    await projectRepository.create(project);
+    await detailsRepository.saveMenu("g1", originalMenu);
+
+    expect(
+      (
+        await requestAdmin(
+          "/admin/v1/projects/g1/details/menu",
+          "PUT",
+          originalMenu,
+          WEBHOOK_URL,
+        )
+      ).status,
+    ).toBe(204);
+    expect(
+      (
+        await requestAdmin(
+          "/admin/v1/projects/g1/details/additionalInfo",
+          "DELETE",
+          undefined,
+          WEBHOOK_URL,
+        )
+      ).status,
+    ).toBe(204);
+    expect(webhookPayloads).toHaveLength(2);
+  });
+
+  test("保存が失敗した場合と webhook 未設定時は通知しない", async () => {
+    await projectRepository.create(project);
+
+    expect(
+      (
+        await requestAdmin(
+          "/admin/v1/projects/unknown/details/menu",
+          "PUT",
+          originalMenu,
+          WEBHOOK_URL,
+        )
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await requestAdmin(
+          "/admin/v1/projects/g1/details/menu",
+          "PUT",
+          { items: "invalid" },
+          WEBHOOK_URL,
+        )
+      ).status,
+    ).toBe(400);
+    expect(webhookPayloads).toHaveLength(0);
+
+    expect(
+      (
+        await requestAdmin(
+          "/admin/v1/projects/g1/details/menu",
+          "PUT",
+          originalMenu,
+        )
+      ).status,
+    ).toBe(204);
+    expect(webhookPayloads).toHaveLength(0);
+  });
+
+  test("webhook が失敗しても保存は成功し warn を残す", async () => {
+    await projectRepository.create(project);
+    webhookStatus = 404;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      const response = await requestAdmin(
+        "/admin/v1/projects/g1/details/additionalInfo",
+        "PUT",
+        "追加情報",
+        WEBHOOK_URL,
+      );
+
+      expect(response.status).toBe(204);
+      expect((await detailsRepository.get("g1"))?.additionalInfo).toBe(
+        "追加情報",
+      );
+      expect(
+        warn.mock.calls.some(([message]) =>
+          String(message).includes("Failed to notify Discord"),
+        ),
+      ).toBe(true);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
