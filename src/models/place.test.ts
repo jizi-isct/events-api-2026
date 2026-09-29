@@ -96,6 +96,16 @@ describe("getPlace", () => {
     });
   });
 
+  test("gets WL1-301 with its lecture theater alias", () => {
+    expect(getPlace("west.wl1.wl1-301")).toEqual({
+      type: "room",
+      name: "wl1-301",
+      displayName: "WL1-301",
+      floor: "3F",
+      alias: "レクチャーシアター",
+    });
+  });
+
   test("rejects an unknown ID", () => {
     expect(v.safeParse(PlaceIdSchema, "midorigaoka.mi6.unknown").success).toBe(
       false,
