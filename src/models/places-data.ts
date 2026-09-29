@@ -517,6 +517,12 @@ export const districts = [
         rooms: [
           { type: "room", name: "w9-201", displayName: "W9-201", floor: "2F" },
           { type: "room", name: "w9-202", displayName: "W9-202", floor: "2F" },
+          {
+            type: "room",
+            name: "w9e-mediahall",
+            displayName: "メディアホール前",
+            floor: "E棟2F",
+          },
           { type: "room", name: "w9-321", displayName: "W9-321", floor: "3F" },
           { type: "room", name: "w9-322", displayName: "W9-322", floor: "3F" },
           { type: "room", name: "w9-323", displayName: "W9-323", floor: "3F" },
