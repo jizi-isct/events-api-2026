@@ -555,6 +555,13 @@ export const districts = [
           },
           {
             type: "room",
+            name: "wl1-301",
+            displayName: "WL1-301",
+            floor: "3F",
+            alias: "レクチャーシアター",
+          },
+          {
+            type: "room",
             name: "wl1-401",
             displayName: "WL1-401",
             floor: "4F",
