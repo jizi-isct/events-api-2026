@@ -1,3 +1,4 @@
+import type { Menu } from "../models/menu";
 import type { Occasion } from "../models/occasion";
 import type { Project, ProjectId } from "../models/project";
 import type { Time } from "../models/time";
@@ -11,11 +12,24 @@ export type ProjectEventType =
   | "description_updated"
   | "icon_updated"
   | "icon_deleted"
-  | "deleted";
+  | "deleted"
+  | "menu_updated"
+  | "menu_deleted"
+  | "additional_info_updated"
+  | "additional_info_deleted";
+
+type ProjectBaseEventType = Exclude<
+  ProjectEventType,
+  | "bulk_created"
+  | "menu_updated"
+  | "menu_deleted"
+  | "additional_info_updated"
+  | "additional_info_deleted"
+>;
 
 export type ProjectEvent =
   | {
-      type: Exclude<ProjectEventType, "bulk_created">;
+      type: ProjectBaseEventType;
       projectId: ProjectId;
       /** 変更後の企画。削除など内容を伴わない操作では省略する。 */
       project?: Project;
@@ -26,7 +40,15 @@ export type ProjectEvent =
       /** 一括登録は件数が多くなるため、企画ごとではなく一通にまとめる。 */
       type: "bulk_created";
       projects: Project[];
-    };
+    }
+  | { type: "menu_updated"; projectId: ProjectId; menu: Menu }
+  | { type: "menu_deleted"; projectId: ProjectId }
+  | {
+      type: "additional_info_updated";
+      projectId: ProjectId;
+      additionalInfo: string;
+    }
+  | { type: "additional_info_deleted"; projectId: ProjectId };
 
 const PRESENTATION: Record<ProjectEventType, { title: string; color: number }> =
   {
@@ -37,6 +59,16 @@ const PRESENTATION: Record<ProjectEventType, { title: string; color: number }> =
     icon_updated: { title: "企画アイコンを更新しました", color: 0x5865f2 },
     icon_deleted: { title: "企画アイコンを削除しました", color: 0xfaa61a },
     deleted: { title: "企画を削除しました", color: 0xed4245 },
+    menu_updated: { title: "企画メニューを更新しました", color: 0x5865f2 },
+    menu_deleted: { title: "企画メニューを削除しました", color: 0xfaa61a },
+    additional_info_updated: {
+      title: "企画追加情報を更新しました",
+      color: 0x5865f2,
+    },
+    additional_info_deleted: {
+      title: "企画追加情報を削除しました",
+      color: 0xfaa61a,
+    },
   };
 
 /** 表示上の目安。Discord の embed field value は 1024 文字が上限。 */
@@ -191,6 +223,23 @@ const describeChanges = (previous: Project, current: Project): string => {
     : truncate(changes.join("\n"), MAX_EMBED_DESCRIPTION_LENGTH);
 };
 
+const formatMenu = (menu: Menu): string =>
+  menu.items.length === 0
+    ? "なし"
+    : menu.items
+        .map((item) => {
+          const price =
+            item.price === undefined ? "" : `（${String(item.price)}円）`;
+          const options = item.options
+            .map(
+              (option) =>
+                `${option.name}${option.price === undefined ? "" : `（${String(option.price)}円）`}`,
+            )
+            .join("、");
+          return `・${item.name}${price}${options === "" ? "" : ` / オプション: ${options}`}`;
+        })
+        .join("\n");
+
 const fieldsOf = (event: ProjectEvent): Field[] => {
   if (event.type === "bulk_created") {
     const ids = event.projects.map((project) => project.id);
@@ -207,9 +256,47 @@ const fieldsOf = (event: ProjectEvent): Field[] => {
     ];
   }
 
-  return event.project === undefined
-    ? [{ name: "企画ID", value: event.projectId, inline: true }]
-    : projectFields(event.project);
+  const idField: Field = {
+    name: "企画ID",
+    value: event.projectId,
+    inline: true,
+  };
+
+  if (event.type === "menu_updated") {
+    return [
+      idField,
+      {
+        name: "メニュー",
+        value: truncate(formatMenu(event.menu), MAX_FIELD_LENGTH),
+        inline: false,
+      },
+      {
+        name: "メニュー説明",
+        value: truncate(event.menu.description || "なし", MAX_FIELD_LENGTH),
+        inline: false,
+      },
+    ];
+  }
+
+  if (event.type === "additional_info_updated") {
+    return [
+      idField,
+      {
+        name: "追加情報",
+        value: truncate(event.additionalInfo || "なし", MAX_FIELD_LENGTH),
+        inline: false,
+      },
+    ];
+  }
+
+  if (
+    event.type === "menu_deleted" ||
+    event.type === "additional_info_deleted"
+  ) {
+    return [idField];
+  }
+
+  return event.project === undefined ? [idField] : projectFields(event.project);
 };
 
 /** どの企画からの通知かを名乗らせる。団体 ID と団体名を並べる。 */
@@ -219,9 +306,9 @@ const usernameOf = (event: ProjectEvent): string | undefined => {
   }
 
   const name =
-    event.project === undefined
-      ? event.projectId
-      : `${event.projectId} ${event.project.groupName}`;
+    "project" in event && event.project !== undefined
+      ? `${event.projectId} ${event.project.groupName}`
+      : event.projectId;
 
   return truncate(name, MAX_USERNAME_LENGTH);
 };
@@ -258,7 +345,7 @@ export class ProjectNotifier {
           title,
           color,
           // 全項目を並べると差分が埋もれるので、変わった項目を先頭にまとめる。
-          ...(event.type !== "bulk_created" &&
+          ...("previous" in event &&
           event.previous !== undefined &&
           event.project !== undefined
             ? { description: describeChanges(event.previous, event.project) }

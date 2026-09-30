@@ -6,6 +6,7 @@ import { MenuSchema } from "../models/menu";
 import { ProjectIdSchema } from "../models/project";
 import { ProjectDetailsRepository } from "../repositories/project_details_repository";
 import { ProjectNotFoundError } from "../repositories/project_repository";
+import { notifyProject } from "../services/notify_project";
 
 const MessageSchema = v.object({
   message: v.string(),
@@ -73,6 +74,7 @@ export const adminProjectDetails = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
+      await notifyProject(c, { type: "menu_updated", projectId, menu });
       return c.body(null, 204);
     },
   )
@@ -100,6 +102,7 @@ export const adminProjectDetails = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
+      await notifyProject(c, { type: "menu_deleted", projectId });
       return c.body(null, 204);
     },
   )
@@ -129,6 +132,11 @@ export const adminProjectDetails = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
+      await notifyProject(c, {
+        type: "additional_info_updated",
+        projectId,
+        additionalInfo,
+      });
       return c.body(null, 204);
     },
   )
@@ -156,6 +164,7 @@ export const adminProjectDetails = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
+      await notifyProject(c, { type: "additional_info_deleted", projectId });
       return c.body(null, 204);
     },
   );
