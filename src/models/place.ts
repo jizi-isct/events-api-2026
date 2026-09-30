@@ -50,7 +50,11 @@ export const StageSchema = v.pipe(
 export type Stage = v.InferInput<typeof StageSchema>;
 
 export const OutdoorSchema = v.pipe(
-  v.object({ ...namedPlaceEntries, type: placeType("outdoor") }),
+  v.object({
+    ...namedPlaceEntries,
+    type: placeType("outdoor"),
+    alias: v.optional(v.string()),
+  }),
   v.metadata({ ref: "Outdoor" }),
 );
 export type Outdoor = v.InferInput<typeof OutdoorSchema>;

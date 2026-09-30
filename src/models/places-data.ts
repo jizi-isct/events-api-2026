@@ -174,7 +174,8 @@ export const districts = [
       {
         type: "outdoor",
         name: "art-street",
-        displayName: "第二食堂前通路",
+        displayName: "アートストリート",
+        alias: "第二食堂前通路",
       },
       {
         type: "food_stall_area",
