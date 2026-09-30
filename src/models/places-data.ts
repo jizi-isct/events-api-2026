@@ -125,12 +125,6 @@ export const districts = [
           { type: "room", name: "m-b07", displayName: "M-B07", floor: "B1F" },
           { type: "room", name: "m-b45", displayName: "M-B45", floor: "B1F" },
           { type: "room", name: "m-b43", displayName: "M-B43", floor: "B1F" },
-          {
-            type: "room",
-            name: "m-cafeteria-2-corridor",
-            displayName: "第二食堂前通路",
-            floor: "B1F",
-          },
           { type: "room", name: "m-101", displayName: "M-101", floor: "1F" },
           { type: "room", name: "m-102", displayName: "M-102", floor: "1F" },
           { type: "room", name: "m-107", displayName: "M-107", floor: "1F" },
@@ -176,6 +170,11 @@ export const districts = [
           { type: "room", name: "m-b104", displayName: "M-B104", floor: "B1F" },
           { type: "room", name: "m-b107", displayName: "M-B107", floor: "B1F" },
         ],
+      },
+      {
+        type: "outdoor",
+        name: "art-street",
+        displayName: "第二食堂前通路",
       },
       {
         type: "food_stall_area",
