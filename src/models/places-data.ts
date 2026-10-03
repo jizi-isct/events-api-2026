@@ -172,6 +172,12 @@ export const districts = [
         ],
       },
       {
+        type: "outdoor",
+        name: "art-street",
+        displayName: "アートストリート",
+        alias: "第二食堂前通路",
+      },
+      {
         type: "food_stall_area",
         name: "fs-honkan-main",
         displayName: "本館横",

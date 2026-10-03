@@ -104,6 +104,18 @@ describe("GET /v1/places/:placeId", () => {
     expect(body).toEqual(getPlace("east.taki-plaza"));
   });
 
+  test("returns an outdoor place with an alias preserved by the schema", async () => {
+    const res = await app.request("/v1/places/main.art-street");
+
+    expect(res.status).toBe(200);
+    expect(v.parse(PlaceSchema, await res.json())).toEqual({
+      type: "outdoor",
+      name: "art-street",
+      displayName: "アートストリート",
+      alias: "第二食堂前通路",
+    });
+  });
+
   test("returns a food stall slot by its hierarchical ID", async () => {
     const res = await app.request("/v1/places/east.fs-east-icho.1");
 
