@@ -15,6 +15,10 @@ import {
   UnsupportedIconFormatError,
 } from "../services/icon_validator";
 import { notifyProject } from "../services/notify_project";
+import {
+  invalidateProjectQueries,
+  purgeProjectCache,
+} from "../services/project_cache";
 
 const MessageSchema = v.object({
   message: v.string(),
@@ -93,6 +97,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       }
 
       await repository.create(project);
+      await invalidateProjectQueries();
       await notifyProject(c, {
         type: "created",
         projectId: project.id,
@@ -156,6 +161,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       }
 
       await repository.createMany(projects);
+      await invalidateProjectQueries();
       await notifyProject(c, { type: "bulk_created", projects });
 
       return c.json(projects, 201);
@@ -211,6 +217,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
+      await purgeProjectCache(projectId);
       await notifyProject(c, {
         type: "updated",
         projectId,
@@ -262,6 +269,7 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
+      await purgeProjectCache(projectId);
       const project = await repository.get(projectId);
 
       // 更新直後に消えていた場合。呼び出し側から見れば対象が無いのと同じ。
@@ -440,6 +448,8 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
+      // 詳細情報も外部キーの CASCADE で消えるため、一緒に purge する。
+      await purgeProjectCache(projectId, true);
       await notifyProject(c, {
         type: "deleted",
         projectId,

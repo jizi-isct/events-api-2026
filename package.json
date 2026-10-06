@@ -32,6 +32,9 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
     "vitest": "^4.1.0",
-    "wrangler": "^4.110.0"
+    "wrangler": "^4.147.0"
+  },
+  "overrides": {
+    "workerd": "1.20261006.1"
   }
 }

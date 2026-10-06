@@ -3,12 +3,15 @@ import { cors } from "hono/cors";
 import { openAPIRouteHandler } from "hono-openapi";
 import type { Bindings } from "./bindings";
 import { requireAccess } from "./middleware/access";
+import { defaultNoStore } from "./middleware/cache";
 import { adminProjectDetails } from "./routes/admin_project_details";
 import { adminProjects } from "./routes/admin_projects";
 import { places } from "./routes/places";
 import { projects } from "./routes/projects";
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+app.use("*", defaultNoStore);
 
 // 読み取り系は公開情報なので、どのオリジンからでもブラウザで直接読めるようにする。
 // 書き込み系(/admin 配下)は Access で守られており、CORS も付けない。
