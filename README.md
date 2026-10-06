@@ -34,6 +34,17 @@ bun run deploy:staging
 bun run deploy:prod
 ```
 
+## キャッシュ
+
+staging / prod ともに [Workers Cache](https://developers.cloudflare.com/workers/cache/) を有効にし、
+`GET /v1/projects` と `GET /v1/projects/:projectId` の成功レスポンスを12時間（43,200秒）キャッシュします。
+`Cache-Control: public, max-age=0, s-maxage=43200, must-revalidate` を返し、ブラウザは毎回再検証します。
+更新時のキャッシュ削除は行わないため、企画の変更が反映されるまで最大12時間かかります。
+
+ヘッダ未指定のレスポンスにも Workers Cache の既定 TTL が適用されるため、
+明示的なキャッシュ設定がないレスポンスには `Cache-Control: no-store` を付けます。
+アイコンの既存の条件付きリクエストと再検証の設定は維持します。
+
 ## Discord 通知
 
 `/admin` 配下の企画情報の変更(登録・一括登録・更新・説明更新・アイコン更新・アイコン削除・削除、

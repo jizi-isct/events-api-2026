@@ -3,6 +3,9 @@
   "name": "events-api-2026",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-13",
+  "cache": {
+    "enabled": true,
+  },
   // named environment だけが custom domain を所有する。default Worker は
   // deploy されても公開されないよう workers.dev の裏口を塞いでおく。
   "workers_dev": false,

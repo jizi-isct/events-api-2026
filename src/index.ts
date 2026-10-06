@@ -10,6 +10,15 @@ import { projects } from "./routes/projects";
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+// Workers Cache はヘッダ未指定のレスポンスもキャッシュするため、明示的に許可する。
+app.use("*", async (c, next) => {
+  await next();
+
+  if (!c.res.headers.has("Cache-Control")) {
+    c.header("Cache-Control", "no-store");
+  }
+});
+
 // 読み取り系は公開情報なので、どのオリジンからでもブラウザで直接読めるようにする。
 // 書き込み系(/admin 配下)は Access で守られており、CORS も付けない。
 const publicCors = cors({

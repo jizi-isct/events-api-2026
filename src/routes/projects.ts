@@ -8,6 +8,10 @@ import { IconRepository } from "../repositories/icon_repository";
 import { ProjectDetailsRepository } from "../repositories/project_details_repository";
 import { ProjectRepository } from "../repositories/project_repository";
 
+// 共有キャッシュの TTL は12時間。ブラウザは毎回再検証する。
+const projectCacheControl =
+  "public, max-age=0, s-maxage=43200, must-revalidate";
+
 const NotFoundSchema = v.object({
   message: v.string(),
 });
@@ -50,7 +54,9 @@ export const projects = new Hono<{ Bindings: Bindings }>()
     }),
     async (c) => {
       const repository = new ProjectRepository(c.env.DB);
-      return c.json(await repository.list());
+      return c.json(await repository.list(), 200, {
+        "Cache-Control": projectCacheControl,
+      });
     },
   )
   .get(
@@ -131,7 +137,9 @@ export const projects = new Hono<{ Bindings: Bindings }>()
         return c.json({ message: `Unknown project ID: ${projectId}` }, 404);
       }
 
-      return c.json(project);
+      return c.json(project, 200, {
+        "Cache-Control": projectCacheControl,
+      });
     },
   )
   .get(

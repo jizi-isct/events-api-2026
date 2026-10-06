@@ -82,6 +82,9 @@ describe("GET /v1/projects", () => {
     const res = await app.request("/v1/projects", undefined, env);
 
     expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe(
+      "public, max-age=0, s-maxage=43200, must-revalidate",
+    );
     expect(await res.json()).toEqual([]);
   });
 
@@ -92,6 +95,9 @@ describe("GET /v1/projects", () => {
     const res = await app.request("/v1/projects", undefined, env);
 
     expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe(
+      "public, max-age=0, s-maxage=43200, must-revalidate",
+    );
 
     const body = (await res.json()) as Project[];
     expect(v.safeParse(v.array(ProjectSchema), body).success).toBe(true);
@@ -106,6 +112,9 @@ describe("GET /v1/projects/:projectId", () => {
     const res = await app.request("/v1/projects/g1", undefined, env);
 
     expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe(
+      "public, max-age=0, s-maxage=43200, must-revalidate",
+    );
     expect(await res.json()).toEqual(general);
   });
 
@@ -113,6 +122,7 @@ describe("GET /v1/projects/:projectId", () => {
     const res = await app.request("/v1/projects/unknown", undefined, env);
 
     expect(res.status).toBe(404);
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
     expect(await res.json()).toEqual({
       message: "Unknown project ID: unknown",
     });
@@ -136,6 +146,7 @@ describe("GET /v1/projects/:projectId/details", () => {
     const res = await app.request("/v1/projects/g1/details", undefined, env);
 
     expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
     const body = await res.json();
     expect(v.safeParse(ProjectDetailsSchema, body).success).toBe(true);
     expect(body).toEqual(details);
