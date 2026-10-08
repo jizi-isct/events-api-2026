@@ -3,7 +3,11 @@ import { bodyLimit } from "hono/body-limit";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import * as v from "valibot";
 import type { Bindings } from "../bindings";
-import { ProjectIdSchema, ProjectSchema } from "../models/project";
+import {
+  type Project,
+  ProjectIdSchema,
+  ProjectSchema,
+} from "../models/project";
 import { IconRepository } from "../repositories/icon_repository";
 import {
   ProjectNotFoundError,
@@ -97,12 +101,16 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       }
 
       await repository.create(project);
-      await invalidateProjectQueries();
-      await notifyProject(c, {
-        type: "created",
-        projectId: project.id,
-        project,
-      });
+      try {
+        await invalidateProjectQueries();
+      } finally {
+        // キャッシュ操作が失敗しても DB の変更は完了しているため通知する。
+        await notifyProject(c, {
+          type: "created",
+          projectId: project.id,
+          project,
+        });
+      }
 
       return c.json(project, 201);
     },
@@ -161,8 +169,11 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       }
 
       await repository.createMany(projects);
-      await invalidateProjectQueries();
-      await notifyProject(c, { type: "bulk_created", projects });
+      try {
+        await invalidateProjectQueries();
+      } finally {
+        await notifyProject(c, { type: "bulk_created", projects });
+      }
 
       return c.json(projects, 201);
     },
@@ -217,13 +228,16 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await purgeProjectCache(projectId);
-      await notifyProject(c, {
-        type: "updated",
-        projectId,
-        project,
-        previous: previous ?? undefined,
-      });
+      try {
+        await purgeProjectCache(projectId);
+      } finally {
+        await notifyProject(c, {
+          type: "updated",
+          projectId,
+          project,
+          previous: previous ?? undefined,
+        });
+      }
 
       return c.json(project);
     },
@@ -269,20 +283,25 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await purgeProjectCache(projectId);
-      const project = await repository.get(projectId);
+      let project: Project | null;
+      try {
+        await purgeProjectCache(projectId);
+      } finally {
+        project = await repository.get(projectId);
+        if (project !== null) {
+          await notifyProject(c, {
+            type: "description_updated",
+            projectId,
+            project,
+            previous: previous ?? undefined,
+          });
+        }
+      }
 
       // 更新直後に消えていた場合。呼び出し側から見れば対象が無いのと同じ。
       if (project === null) {
         return c.json({ message: `Unknown project ID: ${projectId}` }, 404);
       }
-
-      await notifyProject(c, {
-        type: "description_updated",
-        projectId,
-        project,
-        previous: previous ?? undefined,
-      });
 
       return c.json(project);
     },
@@ -449,12 +468,15 @@ export const adminProjects = new Hono<{ Bindings: Bindings }>()
       }
 
       // 詳細情報も外部キーの CASCADE で消えるため、一緒に purge する。
-      await purgeProjectCache(projectId, true);
-      await notifyProject(c, {
-        type: "deleted",
-        projectId,
-        project: project ?? undefined,
-      });
+      try {
+        await purgeProjectCache(projectId, true);
+      } finally {
+        await notifyProject(c, {
+          type: "deleted",
+          projectId,
+          project: project ?? undefined,
+        });
+      }
 
       return c.body(null, 204);
     },

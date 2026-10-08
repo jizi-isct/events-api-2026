@@ -75,8 +75,12 @@ export const adminProjectDetails = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await purgeProjectDetailsCache(projectId);
-      await notifyProject(c, { type: "menu_updated", projectId, menu });
+      try {
+        await purgeProjectDetailsCache(projectId);
+      } finally {
+        // purge が失敗しても DB の変更は完了しているため通知する。
+        await notifyProject(c, { type: "menu_updated", projectId, menu });
+      }
       return c.body(null, 204);
     },
   )
@@ -104,8 +108,11 @@ export const adminProjectDetails = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await purgeProjectDetailsCache(projectId);
-      await notifyProject(c, { type: "menu_deleted", projectId });
+      try {
+        await purgeProjectDetailsCache(projectId);
+      } finally {
+        await notifyProject(c, { type: "menu_deleted", projectId });
+      }
       return c.body(null, 204);
     },
   )
@@ -135,12 +142,15 @@ export const adminProjectDetails = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await purgeProjectDetailsCache(projectId);
-      await notifyProject(c, {
-        type: "additional_info_updated",
-        projectId,
-        additionalInfo,
-      });
+      try {
+        await purgeProjectDetailsCache(projectId);
+      } finally {
+        await notifyProject(c, {
+          type: "additional_info_updated",
+          projectId,
+          additionalInfo,
+        });
+      }
       return c.body(null, 204);
     },
   )
@@ -168,8 +178,11 @@ export const adminProjectDetails = new Hono<{ Bindings: Bindings }>()
         throw error;
       }
 
-      await purgeProjectDetailsCache(projectId);
-      await notifyProject(c, { type: "additional_info_deleted", projectId });
+      try {
+        await purgeProjectDetailsCache(projectId);
+      } finally {
+        await notifyProject(c, { type: "additional_info_deleted", projectId });
+      }
       return c.body(null, 204);
     },
   );

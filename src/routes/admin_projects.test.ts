@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { cache } from "cloudflare:workers";
 import { exportJWK, generateKeyPair, SignJWT, type JWK } from "jose";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
@@ -14,6 +15,8 @@ import { ProjectRepository } from "../repositories/project_repository";
 const db = env.DB;
 const iconBucket = env.ICON_BUCKET;
 const repository = new ProjectRepository(db);
+const purge = vi.mocked(cache.purge);
+const invalidate = vi.mocked(cache.invalidate);
 
 const TEAM_DOMAIN = TEST_ACCESS_TEAM_DOMAIN;
 const AUD = TEST_ACCESS_AUD;
@@ -125,6 +128,8 @@ const general: Project = {
 beforeEach(async () => {
   webhookPayloads.length = 0;
   webhookStatus = 204;
+  purge.mockReset().mockResolvedValue({ success: true, errors: [] });
+  invalidate.mockReset().mockResolvedValue({ success: true, errors: [] });
   await db.prepare(`DELETE FROM projects`).run();
 
   let listed = await iconBucket.list();
@@ -837,6 +842,107 @@ describe("カテゴリ", () => {
 });
 
 describe("Discord への通知", () => {
+  describe.each([
+    {
+      name: "企画の登録",
+      path: "",
+      method: "POST",
+      body: general,
+      expectedProjects: [general],
+      title: "企画を登録しました",
+      cacheOperations: ["invalidate"],
+    },
+    {
+      name: "企画の一括登録",
+      path: "/bulk",
+      method: "POST",
+      body: [general, { ...general, id: "g2" }],
+      expectedProjects: [general, { ...general, id: "g2" }],
+      title: "企画を一括登録しました",
+      cacheOperations: ["invalidate"],
+    },
+    {
+      name: "企画の更新",
+      path: "/g1",
+      method: "PUT",
+      body: { ...general, description: "新しい説明" },
+      expectedProjects: [{ ...general, description: "新しい説明" }],
+      title: "企画を更新しました",
+      cacheOperations: ["purge", "invalidate"],
+    },
+    {
+      name: "企画説明の更新",
+      path: "/g1/description",
+      method: "PATCH",
+      body: { description: "新しい説明" },
+      expectedProjects: [{ ...general, description: "新しい説明" }],
+      title: "企画説明を更新しました",
+      cacheOperations: ["purge", "invalidate"],
+    },
+    {
+      name: "企画の削除",
+      path: "/g1",
+      method: "DELETE",
+      body: undefined,
+      expectedProjects: [],
+      title: "企画を削除しました",
+      cacheOperations: ["purge", "invalidate"],
+    },
+  ] as const)(
+    "$name",
+    ({ path, method, body, expectedProjects, title, cacheOperations }) => {
+      describe.each(cacheOperations)("%s が失敗した場合", (operation) => {
+        test.each(["例外", "失敗レスポンス"])(
+          "%s でも DB に反映された変更を通知する",
+          async (failure) => {
+            if (method !== "POST") {
+              await repository.create(general);
+            }
+            const cacheOperation = vi.mocked(cache[operation]);
+            if (failure === "例外") {
+              cacheOperation.mockRejectedValueOnce(new Error("cache failed"));
+            } else {
+              cacheOperation.mockResolvedValueOnce({
+                success: false,
+                errors: [{ code: 429, message: "rate limited" }],
+              });
+            }
+            const error = vi
+              .spyOn(console, "error")
+              .mockImplementation(() => {});
+
+            try {
+              const response = await notifying(`/admin/v1/projects${path}`, {
+                method,
+                ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+              });
+
+              expect(response.status).toBe(500);
+              expect(await repository.list()).toEqual(expectedProjects);
+              expect(cacheOperation).toHaveBeenCalledOnce();
+              expect(webhookPayloads).toEqual([
+                expect.objectContaining({
+                  embeds: [
+                    expect.objectContaining({
+                      title,
+                      ...(method === "PUT" || method === "PATCH"
+                        ? {
+                            description: `- **説明**: ${general.description} → 新しい説明`,
+                          }
+                        : {}),
+                    }),
+                  ],
+                }),
+              ]);
+            } finally {
+              error.mockRestore();
+            }
+          },
+        );
+      });
+    },
+  );
+
   test("企画の登録を通知する", async () => {
     const res = await notifying("/admin/v1/projects", {
       method: "POST",

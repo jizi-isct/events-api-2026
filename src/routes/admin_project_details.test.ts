@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { cache } from "cloudflare:workers";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import app from "../index";
 import { DEV_BYPASS_VALUE } from "../middleware/access";
@@ -9,6 +10,7 @@ import { ProjectRepository } from "../repositories/project_repository";
 const db = env.DB;
 const projectRepository = new ProjectRepository(db);
 const detailsRepository = new ProjectDetailsRepository(db);
+const purge = vi.mocked(cache.purge);
 
 const WEBHOOK_URL = "https://discord.example/api/webhooks/1/token";
 const webhookPayloads: unknown[] = [];
@@ -68,6 +70,7 @@ const fullDetails: ProjectDetails = {
 
 beforeEach(async () => {
   await db.prepare(`DELETE FROM projects`).run();
+  purge.mockReset().mockResolvedValue({ success: true, errors: [] });
   webhookPayloads.length = 0;
   webhookStatus = 204;
 });
@@ -319,6 +322,77 @@ describe("存在しない企画", () => {
 });
 
 describe("Discord への通知", () => {
+  describe.each(["例外", "失敗レスポンス"])("purge が %s の場合", (failure) => {
+    test.each([
+      {
+        field: "menu",
+        method: "PUT",
+        body: replacementMenu,
+        expectedDetails: { ...fullDetails, menu: replacementMenu },
+        title: "企画メニューを更新しました",
+      },
+      {
+        field: "menu",
+        method: "DELETE",
+        body: undefined,
+        expectedDetails: { additionalInfo: fullDetails.additionalInfo },
+        title: "企画メニューを削除しました",
+      },
+      {
+        field: "additionalInfo",
+        method: "PUT",
+        body: "変更後",
+        expectedDetails: { ...fullDetails, additionalInfo: "変更後" },
+        title: "企画追加情報を更新しました",
+      },
+      {
+        field: "additionalInfo",
+        method: "DELETE",
+        body: undefined,
+        expectedDetails: { menu: originalMenu },
+        title: "企画追加情報を削除しました",
+      },
+    ] as const)(
+      "$field の $method が DB に反映されたら通知する",
+      async ({ field, method, body, expectedDetails, title }) => {
+        await projectRepository.create(project);
+        await detailsRepository.save("g1", fullDetails);
+        if (failure === "例外") {
+          purge.mockRejectedValueOnce(new Error("purge failed"));
+        } else {
+          purge.mockResolvedValueOnce({
+            success: false,
+            errors: [{ code: 429, message: "rate limited" }],
+          });
+        }
+        const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        try {
+          const response = await requestAdmin(
+            `/admin/v1/projects/g1/details/${field}`,
+            method,
+            body,
+            WEBHOOK_URL,
+          );
+
+          expect(response.status).toBe(500);
+          expect(await detailsRepository.get("g1")).toEqual(expectedDetails);
+          expect(purge).toHaveBeenCalledExactlyOnceWith({
+            tags: ["projects-g1-details"],
+          });
+          expect(webhookPayloads).toEqual([
+            expect.objectContaining({
+              username: "g1",
+              embeds: [expect.objectContaining({ title })],
+            }),
+          ]);
+        } finally {
+          error.mockRestore();
+        }
+      },
+    );
+  });
+
   test("メニュー・追加情報の更新と削除を既存 webhook へ通知する", async () => {
     await projectRepository.create(project);
 
