@@ -2,11 +2,17 @@ import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import * as v from "valibot";
 import type { Bindings } from "../bindings";
+import { cacheResponse } from "../middleware/cache";
 import { ProjectIdSchema, ProjectSchema } from "../models/project";
 import { ProjectDetailsSchema } from "../models/project_details";
 import { IconRepository } from "../repositories/icon_repository";
 import { ProjectDetailsRepository } from "../repositories/project_details_repository";
 import { ProjectRepository } from "../repositories/project_repository";
+import {
+  PROJECTS_QUERY_TAG,
+  projectCacheTag,
+  projectDetailsCacheTag,
+} from "../services/project_cache";
 
 const NotFoundSchema = v.object({
   message: v.string(),
@@ -32,6 +38,7 @@ const hasBody = (icon: R2Object): icon is R2ObjectBody => "body" in icon;
 export const projects = new Hono<{ Bindings: Bindings }>()
   .get(
     "/",
+    cacheResponse(PROJECTS_QUERY_TAG),
     describeRoute({
       operationId: "listProjects",
       summary: "企画の一覧",
@@ -55,6 +62,7 @@ export const projects = new Hono<{ Bindings: Bindings }>()
   )
   .get(
     "/:projectId/details",
+    cacheResponse((c) => projectDetailsCacheTag(c.req.param("projectId"))),
     describeRoute({
       operationId: "getProjectDetails",
       summary: "企画詳細情報の取得",
@@ -97,6 +105,7 @@ export const projects = new Hono<{ Bindings: Bindings }>()
   )
   .get(
     "/:projectId",
+    cacheResponse((c) => projectCacheTag(c.req.param("projectId"))),
     describeRoute({
       operationId: "getProject",
       summary: "企画の取得",
